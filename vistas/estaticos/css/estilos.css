@@ -45,7 +45,9 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
 }
 .enlaces a.activo::before { background: var(--amarillo); opacity: 1; transform: scale(1); }
 .enlaces a.activo { color: var(--tinta); }
-.icono-nav { width: 19px; height: 19px; flex: none; }
+.icono-nav { width: 23px; height: 23px; flex: none; color: var(--amarillo); transition: transform .2s, color .2s; }
+.enlaces a.activo .icono-nav { color: var(--tinta); }
+@media (hover: hover) and (pointer: fine) { .enlaces a:hover .icono-nav { transform: scale(1.12); } }
 .texto-nav {
   display: inline-block; max-width: 0; opacity: 0; white-space: nowrap; overflow: hidden;
   transition: max-width .3s cubic-bezier(.23, 1, .32, 1), opacity .2s, margin-left .3s;
