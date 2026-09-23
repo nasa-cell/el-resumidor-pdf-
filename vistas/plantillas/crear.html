@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block titulo %}Resumidor de PDF — Crear resumen{% endblock %}
+{% block contenido %}
+
+<section class="crear">
+  <p class="sobre-crear">Empecemos</p>
+  <h2 class="titulo-crear">Sube tu PDF y elige cómo lo quieres</h2>
+
+  <div class="hoja">
+    <section class="paso">
+      <div class="num">1</div>
+      <div>
+        <h2>Sube el documento</h2>
+        <label class="zona" id="zona">
+          <input type="file" id="pdf" accept="application/pdf">
+          <svg class="zona-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M12 4 7.5 8.5M12 4l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <strong>Elige un PDF o arrástralo aquí</strong>
+          <span>Debe tener texto seleccionable, no fotos escaneadas</span>
+          <div class="archivo" id="nombre"></div>
+        </label>
+      </div>
+    </section>
+
+    <section class="paso">
+      <div class="num">2</div>
+      <div>
+        <h2>Elige cómo lo quieres</h2>
+        <span class="etiqueta">Para quién es</span>
+        <div class="opciones">
+          <label><input type="radio" name="nivel" value="ninos"><span>Niños de 6 a 11 años</span></label>
+          <label><input type="radio" name="nivel" value="secundaria" checked><span>Secundaria, 12 a 17</span></label>
+          <label><input type="radio" name="nivel" value="adultos"><span>Adultos</span></label>
+        </div>
+        <p class="vista-previa">Ejemplo para este nivel: <span id="texto-nivel">"La fotosíntesis convierte la luz solar en energía química que la planta usa para crecer."</span></p>
+        <span class="etiqueta">Color del resaltador</span>
+        <div class="opciones colores">
+          <label title="Amarillo"><input type="radio" name="color" value="amarillo" checked><span class="punta punta-amarillo"></span></label>
+          <label title="Verde"><input type="radio" name="color" value="verde"><span class="punta punta-verde"></span></label>
+          <label title="Rosa"><input type="radio" name="color" value="rosa"><span class="punta punta-rosa"></span></label>
+          <label title="Celeste"><input type="radio" name="color" value="celeste"><span class="punta punta-celeste"></span></label>
+          <label title="Naranja"><input type="radio" name="color" value="naranja"><span class="punta punta-naranja"></span></label>
+        </div>
+        <div class="nombre-color" id="nombre-color">Amarillo</div>
+        <p class="vista-previa">Así se verá resaltado en tu PDF: <span class="resaltado">idea importante</span></p>
+      </div>
+    </section>
+
+    <section class="paso">
+      <div class="num">3</div>
+      <div>
+        <h2>Imágenes y gráficos</h2>
+        <div class="bloque-opcion">
+          <label class="interruptor"><input type="checkbox" id="con_imagenes" checked><span class="pista"></span>Incluir imágenes</label>
+          <div class="detalle visible" id="det-imagenes">
+            <span class="etiqueta">Cuántas</span>
+            <div class="opciones">
+              <label><input type="radio" name="cant_imagenes" value="1"><span>1</span></label>
+              <label><input type="radio" name="cant_imagenes" value="2" checked><span>2</span></label>
+              <label><input type="radio" name="cant_imagenes" value="3"><span>3</span></label>
+              <label><input type="radio" name="cant_imagenes" value="4"><span>4</span></label>
+            </div>
+            <span class="etiqueta">De dónde</span>
+            <div class="opciones">
+              <label><input type="radio" name="origen_imagenes" value="ia" checked><span>Creadas con IA</span></label>
+              <label><input type="radio" name="origen_imagenes" value="pdf"><span>Sacadas del PDF</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="bloque-opcion">
+          <label class="interruptor"><input type="checkbox" id="con_graficos" checked><span class="pista"></span>Incluir gráficos</label>
+          <div class="detalle visible" id="det-graficos">
+            <span class="etiqueta">Cuántos</span>
+            <div class="opciones">
+              <label><input type="radio" name="cant_graficos" value="1" checked><span>1</span></label>
+              <label><input type="radio" name="cant_graficos" value="2"><span>2</span></label>
+              <label><input type="radio" name="cant_graficos" value="3"><span>3</span></label>
+            </div>
+            <p class="nota">Se hacen solo con números reales del documento. Si no hay datos suficientes, salen menos.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="paso">
+      <div class="num">4</div>
+      <div>
+        <h2>Datos para la portada <span class="opcional">Opcional</span></h2>
+        <div class="campos">
+          <label>Nombre del estudiante
+            <span class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.7"/><path d="M5 20c1.4-4.2 4.2-6.2 7-6.2s5.6 2 7 6.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <input id="estudiante" autocomplete="name" maxlength="50" placeholder="Ej: Valentina Rojas">
+            </span>
+          </label>
+          <label>Grado o curso
+            <span class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5 3 9.5 12 14l9-4.5L12 5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7 11.8V16c0 1.4 2.2 2.6 5 2.6s5-1.2 5-2.6v-4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <input id="curso" maxlength="40" placeholder="Ej: 5° de secundaria, Ciencias">
+            </span>
+          </label>
+          <label>Docente
+            <span class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="11.5" rx="1.5" stroke="currentColor" stroke-width="1.7"/><path d="M8 20.5h8M12 16.5v4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              <input id="docente" maxlength="50" placeholder="Ej: Prof. Carla Méndez">
+            </span>
+          </label>
+          <label>Autor del documento original
+            <span class="campo-caja">
+              <svg class="campo-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4.5 19.5 5 16l10-10 3 3-10 10-3.5.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M13.5 7.5l3 3" stroke="currentColor" stroke-width="1.7"/></svg>
+              <input id="autor" maxlength="50" placeholder="Ej: Ministerio de Educación">
+            </span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <div class="paso-final">
+      <button id="boton" class="magnetico" disabled>Crear mi resumen</button>
+      <div class="barra" id="barra"><div></div></div>
+      <div class="estado" id="estado" role="status"></div>
+      <div class="aviso" id="aviso"></div>
+    </div>
+  </div>
+
+  <div class="ahorro" id="ahorro" aria-live="polite">
+    <span class="ahorro-check" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 7v6c0 4.2 3 7.4 8 9 5-1.6 8-4.8 8-9V7l-8-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <div>
+      <p class="ahorro-titulo">Tu resumen está listo</p>
+      <p id="ahorro-texto"></p>
+      <div class="tiempos">
+        <div class="tiempo-bloque">
+          <span class="tiempo-etiqueta">Antes</span>
+          <span class="antes" id="antes"></span>
+        </div>
+        <svg class="flecha-ahorro" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h15M13 6l6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="tiempo-bloque">
+          <span class="tiempo-etiqueta">Ahora</span>
+          <span class="ahora"><span class="resaltado" id="ahora"></span></span>
+        </div>
+      </div>
+      <p class="descarga-nota">Tu PDF ya se descargó.</p>
+    </div>
+  </div>
+</section>
+
+{% endblock %}
+{% block script %}
+<script src="{{ url_for('static', filename='js/principal.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block titulo %}Resumidor de PDF — Inicio{% endblock %}
+{% block contenido %}
+
+<section class="hero">
+  <div class="hero-texto">
+    <p class="sobre aparece" style="--r:0">Resumen de estudio</p>
+    <h1 class="aparece" style="--r:1"><span class="resaltado">Convierte un PDF largo en lo que de verdad necesitas estudiar</span></h1>
+    <p class="intro aparece" style="--r:2">Sube el documento y en un par de minutos recibes otro PDF con portada, las ideas principales, un mapa conceptual, imágenes, gráficos, palabras clave y preguntas para practicar.</p>
+    <a class="cta-ir magnetico aparece" href="{{ url_for('resumen.crear_pagina') }}" style="--r:3">Crear mi resumen<span aria-hidden="true"> →</span></a>
+  </div>
+
+  <div class="mascotas aparece" style="--r:2" aria-hidden="true">
+    <div class="mascota-envoltorio" style="--tam:104px; --x:8%; --y:2%; --demora:0s">
+      <svg class="mascota" style="--prof:.6" viewBox="0 0 100 120">
+        <defs>
+          <linearGradient id="gA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1A0"/><stop offset="1" stop-color="#F2C93E"/></linearGradient>
+        </defs>
+        <rect x="4" y="4" width="92" height="112" rx="16" fill="url(#gA)" stroke="#17151F" stroke-opacity=".1" stroke-width="1.5"/>
+        <path d="M8 96q42 14 84 0v14a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6Z" fill="#17151F" opacity=".08"/>
+        <ellipse cx="26" cy="20" rx="20" ry="9" fill="#fff" opacity=".28" transform="rotate(-12 26 20)"/>
+        <path d="M78 4v20a6 6 0 0 0 6 6h12L78 4Z" fill="#17151F" opacity=".15"/>
+        <path d="M25 44q7-7 15-1" stroke="#17151F" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M60 43q8-6 15 1" stroke="#17151F" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <g class="ojos">
+          <ellipse cx="33" cy="57" rx="8.5" ry="9.5" fill="#fff"/>
+          <circle cx="33.5" cy="58" r="5" fill="#4A3728"/><circle cx="33.5" cy="58" r="2.3" fill="#17151F"/><circle cx="35.5" cy="55" r="1.6" fill="#fff"/>
+          <ellipse cx="67" cy="57" rx="8.5" ry="9.5" fill="#fff"/>
+          <circle cx="67.5" cy="58" r="5" fill="#4A3728"/><circle cx="67.5" cy="58" r="2.3" fill="#17151F"/><circle cx="69.5" cy="55" r="1.6" fill="#fff"/>
+        </g>
+        <ellipse cx="24" cy="72" rx="6" ry="3.4" fill="#D6482E" opacity=".22"/><ellipse cx="76" cy="72" rx="6" ry="3.4" fill="#D6482E" opacity=".22"/>
+        <path d="M27 76Q50 96 73 76Q50 86 27 76Z" fill="#17151F"/>
+      </svg>
+    </div>
+    <div class="mascota-envoltorio" style="--tam:88px; --x:62%; --y:-4%; --demora:.6s">
+      <svg class="mascota" style="--prof:1" viewBox="0 0 100 120">
+        <defs>
+          <linearGradient id="gB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8FDFFF"/><stop offset="1" stop-color="#2BA3DE"/></linearGradient>
+        </defs>
+        <rect x="4" y="4" width="92" height="112" rx="16" fill="url(#gB)" stroke="#17151F" stroke-opacity=".1" stroke-width="1.5"/>
+        <path d="M8 96q42 14 84 0v14a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6Z" fill="#17151F" opacity=".08"/>
+        <ellipse cx="26" cy="20" rx="20" ry="9" fill="#fff" opacity=".28" transform="rotate(-12 26 20)"/>
+        <path d="M78 4v20a6 6 0 0 0 6 6h12L78 4Z" fill="#17151F" opacity=".15"/>
+        <path d="M60 42q8-7 16 0" stroke="#17151F" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <g class="ojos">
+          <path d="M25 58q8-5 16 0" stroke="#17151F" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <ellipse cx="67" cy="57" rx="8.5" ry="9.5" fill="#fff"/>
+          <circle cx="67.5" cy="58" r="5" fill="#2B5B6B"/><circle cx="67.5" cy="58" r="2.3" fill="#17151F"/><circle cx="69.5" cy="55" r="1.6" fill="#fff"/>
+        </g>
+        <path d="M28 77Q48 84 74 72Q56 82 28 77Z" fill="#17151F"/>
+      </svg>
+    </div>
+    <div class="mascota-envoltorio" style="--tam:78px; --x:70%; --y:58%; --demora:1.1s">
+      <svg class="mascota" style="--prof:1.3" viewBox="0 0 100 120">
+        <defs>
+          <linearGradient id="gC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFC27A"/><stop offset="1" stop-color="#E8811F"/></linearGradient>
+        </defs>
+        <rect x="4" y="4" width="92" height="112" rx="16" fill="url(#gC)" stroke="#17151F" stroke-opacity=".1" stroke-width="1.5"/>
+        <path d="M8 96q42 14 84 0v14a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6Z" fill="#17151F" opacity=".08"/>
+        <ellipse cx="26" cy="20" rx="20" ry="9" fill="#fff" opacity=".28" transform="rotate(-12 26 20)"/>
+        <path d="M78 4v20a6 6 0 0 0 6 6h12L78 4Z" fill="#17151F" opacity=".15"/>
+        <path d="M23 42q8-9 17 0" stroke="#17151F" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M59 42q8-9 17 0" stroke="#17151F" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <g class="ojos">
+          <ellipse cx="33" cy="57" rx="9.5" ry="11" fill="#fff"/>
+          <circle cx="33.5" cy="58" r="5.8" fill="#4A3728"/><circle cx="33.5" cy="58" r="2.6" fill="#17151F"/><circle cx="35.7" cy="54.5" r="1.8" fill="#fff"/>
+          <ellipse cx="67" cy="57" rx="9.5" ry="11" fill="#fff"/>
+          <circle cx="67.5" cy="58" r="5.8" fill="#4A3728"/><circle cx="67.5" cy="58" r="2.6" fill="#17151F"/><circle cx="69.7" cy="54.5" r="1.8" fill="#fff"/>
+        </g>
+        <ellipse cx="50" cy="83" rx="10" ry="12" fill="#17151F"/><ellipse cx="50" cy="86" rx="5.5" ry="7" fill="#7A2F2F"/>
+      </svg>
+    </div>
+    <div class="mascota-envoltorio" style="--tam:92px; --x:14%; --y:60%; --demora:1.7s">
+      <svg class="mascota" style="--prof:.8" viewBox="0 0 100 120">
+        <defs>
+          <linearGradient id="gD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF9FC4"/><stop offset="1" stop-color="#E84D87"/></linearGradient>
+        </defs>
+        <rect x="4" y="4" width="92" height="112" rx="16" fill="url(#gD)" stroke="#17151F" stroke-opacity=".1" stroke-width="1.5"/>
+        <path d="M8 96q42 14 84 0v14a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6Z" fill="#17151F" opacity=".08"/>
+        <ellipse cx="26" cy="20" rx="20" ry="9" fill="#fff" opacity=".28" transform="rotate(-12 26 20)"/>
+        <path d="M78 4v20a6 6 0 0 0 6 6h12L78 4Z" fill="#17151F" opacity=".15"/>
+        <path d="M24 47h16" stroke="#17151F" stroke-width="3" stroke-linecap="round"/>
+        <path d="M62 43q8 5 14 3" stroke="#17151F" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <g class="ojos">
+          <ellipse cx="33" cy="58" rx="7.5" ry="8.5" fill="#fff"/>
+          <circle cx="31" cy="59" r="4.4" fill="#4A3728"/><circle cx="31" cy="59" r="2" fill="#17151F"/><circle cx="32.6" cy="56.8" r="1.3" fill="#fff"/>
+          <ellipse cx="67" cy="58" rx="7.5" ry="8.5" fill="#fff"/>
+          <circle cx="65" cy="59" r="4.4" fill="#4A3728"/><circle cx="65" cy="59" r="2" fill="#17151F"/><circle cx="66.6" cy="56.8" r="1.3" fill="#fff"/>
+        </g>
+        <rect x="36" y="80" width="28" height="5.5" rx="2.75" fill="#17151F" transform="rotate(-7 50 82)"/>
+      </svg>
+    </div>
+    <div class="mascota-envoltorio" style="--tam:64px; --x:40%; --y:32%; --demora:2.3s">
+      <svg class="mascota" style="--prof:1.5" viewBox="0 0 100 120">
+        <defs>
+          <linearGradient id="gE" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8B6BFF"/><stop offset="1" stop-color="#5225D6"/></linearGradient>
+        </defs>
+        <rect x="4" y="4" width="92" height="112" rx="16" fill="url(#gE)" stroke="#17151F" stroke-opacity=".18" stroke-width="1.5"/>
+        <path d="M8 96q42 14 84 0v14a6 6 0 0 1-6 6H14a6 6 0 0 1-6-6Z" fill="#17151F" opacity=".14"/>
+        <ellipse cx="26" cy="20" rx="20" ry="9" fill="#fff" opacity=".22" transform="rotate(-12 26 20)"/>
+        <path d="M78 4v20a6 6 0 0 0 6 6h12L78 4Z" fill="#fff" opacity=".18"/>
+        <text x="76" y="30" font-size="11" fill="#fff" opacity=".85" font-family="Poppins, sans-serif" font-weight="700">z</text>
+        <text x="84" y="20" font-size="8" fill="#fff" opacity=".7" font-family="Poppins, sans-serif" font-weight="700">z</text>
+        <g class="ojos">
+          <path d="M25 58q8-6 16 0" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M59 58q8-6 16 0" stroke="#fff" stroke-width="4" stroke-linecap="round" fill="none"/>
+        </g>
+        <path d="M39 80Q50 88 61 80Q50 85 39 80Z" fill="#fff"/>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<svg class="ola" viewBox="0 0 1200 60" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0,30 C200,60 400,0 600,20 C800,40 1000,10 1200,30 L1200,60 L0,60 Z" fill="currentColor"/>
+</svg>
+
+<section class="caracteristicas-seccion aparece" style="--r:4">
+  <h2 class="titulo-seccion">Todo lo que trae tu resumen</h2>
+  <ul class="caracteristicas">
+    <li class="tarjeta-color color-amarillo">
+      <span class="icono-chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M9 8h6M9 12h6M9 16h3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>
+      <strong>Portada a tu nombre</strong>
+      <span class="descripcion">Con curso, docente y la fecha, lista para entregar.</span>
+    </li>
+    <li class="tarjeta-color color-celeste">
+      <span class="icono-chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 6 6 17M12 6l6 11M6 17h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="6" r="2.3" stroke="currentColor" stroke-width="1.7"/><circle cx="6" cy="17" r="2.3" stroke="currentColor" stroke-width="1.7"/><circle cx="18" cy="17" r="2.3" stroke="currentColor" stroke-width="1.7"/></svg></span>
+      <strong>Mapa conceptual</strong>
+      <span class="descripcion">Las ideas del documento, conectadas de un vistazo.</span>
+    </li>
+    <li class="tarjeta-color color-naranja">
+      <span class="icono-chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 19v-5M12 19V9M18 19V5" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg></span>
+      <strong>Gráficos reales</strong>
+      <span class="descripcion">Solo con números que están en tu PDF, nada inventado.</span>
+    </li>
+    <li class="tarjeta-color color-rosa">
+      <span class="icono-chip"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9.5a2.5 2.5 0 0 1 4.6-1.4c.6.9.4 1.7-.3 2.5-.7.8-1.8 1.2-1.8 2.8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="12" cy="17" r=".9" fill="currentColor"/></svg></span>
+      <strong>Preguntas para practicar</strong>
+      <span class="descripcion">Para comprobar qué quedó claro antes del examen.</span>
+    </li>
+  </ul>
+</section>
+
+{% endblock %}

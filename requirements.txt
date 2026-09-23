@@ -1,0 +1,7 @@
+flask
+gunicorn
+requests
+pypdf
+reportlab
+matplotlib
+pillow

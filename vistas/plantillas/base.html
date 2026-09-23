@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block titulo %}Resumidor de PDF{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600;9..144,700&family=Poppins:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/estilos.css') }}">
+</head>
+<body>
+
+{% include "_nav.html" %}
+
+<main>
+{% block contenido %}{% endblock %}
+</main>
+
+{% block script %}{% endblock %}
+<script src="{{ url_for('static', filename='js/efectos.js') }}"></script>
+
+</body>
+</html>

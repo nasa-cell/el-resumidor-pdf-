@@ -1,0 +1,14 @@
+<header class="nav">
+  <a class="marca" href="{{ url_for('resumen.inicio') }}">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none" aria-hidden="true">
+      <path d="M6 3h10l4 4v16H6V3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M16 3v4h4" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M9 14h8M9 17.5h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    Resumidor
+  </a>
+  <nav class="enlaces">
+    <a href="{{ url_for('resumen.inicio') }}" class="{{ 'activo' if pagina == 'inicio' else '' }}">Inicio</a>
+    <a href="{{ url_for('resumen.crear_pagina') }}" class="{{ 'activo' if pagina == 'crear' else '' }}">Crear resumen</a>
+  </nav>
+</header>
