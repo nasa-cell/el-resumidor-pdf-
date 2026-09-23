@@ -50,6 +50,7 @@ $("boton").addEventListener("click", async () => {
   datos.append("pdf", archivo);
   ["nivel", "color"].forEach(n => datos.append(n, document.querySelector(`input[name="${n}"]:checked`).value));
   ["estudiante", "curso", "docente", "autor"].forEach(n => datos.append(n, $(n).value));
+  datos.append("con_mapa", $("con_mapa").checked ? "si" : "no");
   datos.append("con_imagenes", $("con_imagenes").checked ? "si" : "no");
   datos.append("con_graficos", $("con_graficos").checked ? "si" : "no");
   ["cant_imagenes", "origen_imagenes", "cant_graficos"].forEach(n =>

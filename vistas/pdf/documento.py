@@ -16,11 +16,12 @@ from .tema import (ACENTO, ALTO, ANCHO, COLORES_ACENTO, CUADRICULA, CUERPO, DEFI
 
 
 class ArmadorPDF:
-    def __init__(self, datos, color, imagenes):
+    def __init__(self, datos, color, imagenes, incluir_mapa=True):
         self.datos = datos
         self.color = color
         self.resaltador = color_resaltador(color)
         self.imagenes = imagenes or []
+        self.incluir_mapa = incluir_mapa
         self.titulo = str(datos.get("titulo") or "Resumen")
         self.historia = [Spacer(1, 1), PageBreak()]   # la página 1 es la portada
         self._marcas = 0
@@ -56,6 +57,8 @@ class ArmadorPDF:
             self.historia.append(fila)
 
     def mapa_conceptual(self):
+        if not self.incluir_mapa:
+            return
         mapa = self.datos.get("mapa") or {}
         if isinstance(mapa, dict) and mapa.get("centro") and mapa.get("ramas"):
             self.historia.append(KeepTogether(self._seccion("Mapa conceptual") +
@@ -161,6 +164,6 @@ class ArmadorPDF:
         return salida.getvalue()
 
 
-def crear_pdf_resumen(datos, color="amarillo", imagenes=None):
+def crear_pdf_resumen(datos, color="amarillo", imagenes=None, incluir_mapa=True):
     """Punto de entrada de la vista PDF."""
-    return ArmadorPDF(datos, color, imagenes).construir()
+    return ArmadorPDF(datos, color, imagenes, incluir_mapa).construir()

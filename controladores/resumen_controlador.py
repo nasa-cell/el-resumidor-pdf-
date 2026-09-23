@@ -32,6 +32,7 @@ def _leer_opciones(formulario):
     return {
         "nivel": formulario.get("nivel", "secundaria"),
         "color": formulario.get("color", "amarillo"),
+        "con_mapa": formulario.get("con_mapa", "si") == "si",
         "n_imagenes": entero_en_rango(formulario.get("cant_imagenes"), 1, MAX_IMAGENES) if con_imagenes else 0,
         "origen": "pdf" if formulario.get("origen_imagenes") == "pdf" else "ia",
         "n_graficos": entero_en_rango(formulario.get("cant_graficos"), 1, MAX_GRAFICOS) if con_graficos else 0,
@@ -100,7 +101,7 @@ def resumir():
     }
 
     # 5. Crear el PDF (vista) y enviarlo
-    pdf = crear_pdf_resumen(datos, color=op["color"], imagenes=imagenes)
+    pdf = crear_pdf_resumen(datos, color=op["color"], imagenes=imagenes, incluir_mapa=op["con_mapa"])
     respuesta = send_file(io.BytesIO(pdf), mimetype="application/pdf", as_attachment=True,
                           download_name=nombre_seguro(archivo.filename))
     respuesta.headers["X-Paginas"] = str(documento.paginas)

@@ -33,9 +33,9 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
 .marca:hover svg { transform: rotate(-8deg) scale(1.08); }
 .enlaces { display: flex; gap: 6px; }
 .enlaces a {
-  position: relative; z-index: 1; display: inline-block;
+  position: relative; z-index: 1; display: inline-flex; align-items: center;
   color: rgba(255, 255, 255, .62); text-decoration: none; font-size: .95rem; font-weight: 500;
-  padding: 8px 16px; border-radius: 999px; transition: color .2s;
+  padding: 8px 14px; border-radius: 999px; transition: color .2s;
 }
 .enlaces a::before {
   content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit;
@@ -45,9 +45,16 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
 }
 .enlaces a.activo::before { background: var(--amarillo); opacity: 1; transform: scale(1); }
 .enlaces a.activo { color: var(--tinta); }
+.icono-nav { width: 19px; height: 19px; flex: none; }
+.texto-nav {
+  display: inline-block; max-width: 0; opacity: 0; white-space: nowrap; overflow: hidden;
+  transition: max-width .3s cubic-bezier(.23, 1, .32, 1), opacity .2s, margin-left .3s;
+}
+.enlaces a.activo .texto-nav { max-width: 160px; opacity: 1; margin-left: 8px; }
 @media (hover: hover) and (pointer: fine) {
   .enlaces a:not(.activo):hover::before { opacity: 1; transform: scale(1); }
   .enlaces a:not(.activo):hover { color: #fff; }
+  .enlaces a:hover .texto-nav, .enlaces a:focus-visible .texto-nav { max-width: 160px; opacity: 1; margin-left: 8px; }
 }
 .enlaces a:focus-visible { outline: 2px solid var(--amarillo); outline-offset: 2px; }
 
