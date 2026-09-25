@@ -7,7 +7,7 @@ from reportlab.lib.utils import ImageReader, simpleSplit
 from reportlab.pdfbase import pdfmetrics
 from reportlab.platypus import Flowable, Paragraph, Table, TableStyle
 
-from .tema import ACENTO, CUADRICULA, FONDO_SUAVE, GRAFITO, PAPEL, PUNTEADO
+from .tema import ACENTO, CUADRICULA, FONDO_SUAVE, GRAFITO, PAPEL
 
 
 def parrafo(texto, estilo):
@@ -181,7 +181,8 @@ class ImagenEnMarco(Flowable):
 
 
 class LineasParaEscribir(Flowable):
-    """Renglones punteados para responder a mano. Con 'llenar', ocupan el resto de la hoja."""
+    """Renglones negros para responder a mano (bien visibles, también impresos en blanco y negro).
+    Con 'llenar', ocupan el resto de la hoja."""
 
     def __init__(self, cantidad=2, separacion=17, llenar=False):
         super().__init__()
@@ -196,9 +197,8 @@ class LineasParaEscribir(Flowable):
     def draw(self):
         c = self.canv
         c.saveState()
-        c.setStrokeColor(PUNTEADO)
-        c.setLineWidth(0.8)
-        c.setDash(1, 2.6)
+        c.setStrokeColor(GRAFITO)
+        c.setLineWidth(0.6)
         for i in range(self.cantidad):
             y = i * self.separacion + 2
             c.line(0, y, self.ancho, y)
