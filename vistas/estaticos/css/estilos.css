@@ -59,6 +59,16 @@ main { max-width: 1040px; margin: 0 auto; padding: 0 20px; }
   .enlaces a:hover .texto-nav, .enlaces a:focus-visible .texto-nav { max-width: 160px; opacity: 1; margin-left: 8px; }
 }
 .enlaces a:focus-visible { outline: 2px solid var(--amarillo); outline-offset: 2px; }
+/* celular: el menú entero cabe en el ancho (antes se salía unos píxeles a la derecha) */
+@media (max-width: 480px) {
+  .nav { padding: 12px 16px; gap: 10px; }
+  .enlaces { gap: 4px; }
+  .enlaces a { padding: 8px 10px; }
+}
+/* celulares muy angostos: queda el ícono de la marca y su nombre solo para lectores de pantalla */
+@media (max-width: 360px) {
+  .marca-texto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
 
 /* inicio: hero grande con mockup flotante */
 .hero { position: relative; display: grid; grid-template-columns: 1fr 300px; gap: 40px 50px; align-items: center; padding: 64px 0 56px; }
