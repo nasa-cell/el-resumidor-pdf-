@@ -15,7 +15,7 @@
           <input type="file" id="pdf" accept="application/pdf">
           <svg class="zona-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M12 4 7.5 8.5M12 4l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <strong>Elige un PDF o arrástralo aquí</strong>
-          <span>Debe tener texto seleccionable, no fotos escaneadas</span>
+          <span>Con texto, imágenes, diagramas o escaneado: se lee todo</span>
           <div class="archivo" id="nombre"></div>
         </label>
       </div>
@@ -88,6 +88,28 @@
       <div class="num">4</div>
       <div>
         <h2>Datos para la portada <span class="opcional">Opcional</span></h2>
+        <span class="etiqueta">Imagen principal de la portada</span>
+        <label class="zona zona-portada" id="zona-portada">
+          <input type="file" id="portada" accept="image/jpeg,image/png,image/webp">
+          <svg class="zona-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="10" r="1.8" stroke="currentColor" stroke-width="1.6"/><path d="m4.5 17.5 5-5 3.5 3.5 2.5-2.5 4 4" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+          <strong>Elige una imagen o arrástrala aquí</strong>
+          <span>JPG, PNG o WebP, hasta 8 MB. Va arriba en la portada, de borde a borde.</span>
+        </label>
+        <div class="portada-previa" id="portada-previa" hidden>
+          <div class="previa-marco" id="previa-marco" role="button" tabindex="0"
+               aria-label="Toca la parte de la foto que quieres que se vea en la portada">
+            <img id="previa-img" alt="Vista previa de la imagen de la portada">
+            <span class="previa-titulo" aria-hidden="true">Título del resumen</span>
+          </div>
+          <p class="nota">Así queda en la portada. Toca la foto para mover el recorte hacia la parte más importante.</p>
+          <button type="button" class="quitar" id="quitar-portada">Quitar imagen</button>
+        </div>
+        <span class="etiqueta">Si no subes imagen</span>
+        <div class="opciones">
+          <label><input type="radio" name="portada_respaldo" value="pdf" checked><span>Usar la mejor imagen del PDF</span></label>
+          <label><input type="radio" name="portada_respaldo" value="ninguna"><span>Portada sin foto</span></label>
+        </div>
+        <span class="etiqueta">Tus datos</span>
         <div class="campos">
           <label>Nombre del estudiante
             <span class="campo-caja">
@@ -119,7 +141,8 @@
 
     <div class="paso-final">
       <button id="boton" class="magnetico" disabled>Crear mi resumen</button>
-      <div class="barra" id="barra"><div></div></div>
+      <div class="barra" id="barra" role="progressbar" aria-label="Avance del resumen" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
+      <div class="porcentaje" id="porcentaje" aria-hidden="true"></div>
       <div class="estado" id="estado" role="status"></div>
       <div class="aviso" id="aviso"></div>
     </div>

@@ -254,6 +254,26 @@ h2 { font-size: 1.1rem; font-weight: 700; margin: 0 0 14px; line-height: 1.5; co
 .campos input::placeholder { color: #a49c86; font-weight: 400; }
 @media (max-width: 480px) { .campos { grid-template-columns: 1fr; } }
 
+/* imagen de la portada: la vista previa tiene la misma forma que la foto del PDF (A4: 210 x 56 % de 297) */
+.zona-portada { padding: 22px 18px; }
+.zona-portada[hidden], .portada-previa[hidden] { display: none; }
+.portada-previa { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.previa-marco {
+  position: relative; width: 100%; max-width: 420px; aspect-ratio: 210 / 166.32;
+  border-radius: var(--radio-sm); overflow: hidden; cursor: crosshair; background: var(--fondo);
+}
+.previa-marco:focus-visible { outline: 3px solid var(--violeta-oscuro); outline-offset: 3px; }
+.previa-marco img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.previa-titulo {
+  position: absolute; left: 7%; bottom: 8%; padding: 4px 10px; border-radius: 6px;
+  background: rgba(89, 49, 214, .9); color: #fff; font: 700 clamp(.9rem, 3vw, 1.2rem) "Fraunces", Georgia, serif;
+}
+.quitar {
+  width: auto; padding: 7px 14px; font-size: .88rem; font-weight: 500; background: transparent; color: var(--tinta);
+  border: 1.5px solid var(--tinta); border-radius: var(--radio-sm); box-shadow: none;
+}
+.quitar:hover { background: var(--tinta); color: var(--papel); box-shadow: none; transform: none; }
+
 button {
   width: 100%; padding: 17px; border: 0; background: var(--violeta); color: #fff; border-radius: 999px;
   font: 700 1.05rem "Poppins", sans-serif; cursor: pointer;
@@ -264,11 +284,12 @@ button:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 0 0 0 v
 button:focus-visible { outline: 3px solid var(--violeta-oscuro); outline-offset: 3px; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 
-.barra { height: 5px; margin-top: 14px; overflow: hidden; display: none; background: var(--cuadricula); border-radius: 999px; }
+/* barra de avance real: el ancho lo pone principal.js con el porcentaje que informa el servidor */
+.barra { height: 10px; margin-top: 14px; overflow: hidden; display: none; background: var(--cuadricula); border-radius: 999px; }
 .barra.visible { display: block; }
-.barra div { height: 100%; width: 40%; background: var(--res); animation: pasar 1.2s ease-in-out infinite; }
-@keyframes pasar { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
-@media (prefers-reduced-motion: reduce) { .barra div { animation: none; width: 100%; } .resaltado { transition: none; } }
+.barra div { height: 100%; width: 0; background: var(--violeta); border-radius: 999px; transition: width .7s ease-out; }
+.porcentaje { margin-top: 6px; font-weight: 700; font-size: .9rem; color: var(--violeta-oscuro); font-variant-numeric: tabular-nums; min-height: 0; }
+@media (prefers-reduced-motion: reduce) { .barra div { transition: none; } .resaltado { transition: none; } }
 .estado { margin-top: 12px; min-height: 26px; font-size: .95rem; color: var(--tinta); }
 .estado.error { color: var(--error); }
 

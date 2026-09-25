@@ -8,12 +8,13 @@
     ├── requirements.txt            Librerías que se instalan
     │
     ├── modelos/                    MODELO: datos y conexión con las APIs
-    │   ├── lector_pdf.py           Lee texto e imágenes del PDF
-    │   ├── servicio_gemini.py      Pide el resumen a Gemini
-    │   └── servicio_imagenes.py    Crea imágenes con IA (Pollinations)
+    │   ├── lector_pdf.py           Lee el PDF: páginas, texto e imágenes (sin fondos negros)
+    │   ├── servicio_gemini.py      Manda el PDF entero a Gemini y pide el resumen
+    │   ├── servicio_imagenes.py    Crea imágenes con IA (Pollinations)
+    │   └── imagen_portada.py       Recorta la imagen de la portada
     │
     ├── controladores/              CONTROLADOR: recibe el pedido y coordina
-    │   └── resumen_controlador.py  Rutas "/", "/crear" y "/resumir"
+    │   └── resumen_controlador.py  Rutas "/", "/crear", "/resumir" y su avance
     │
     ├── vistas/                     VISTA: lo que ve el usuario
     │   ├── plantillas/
@@ -26,22 +27,51 @@
     │   │   └── js/principal.js     Funcionamiento de la página (solo JavaScript)
     │   └── pdf/                    Diseño del PDF que se descarga
     │       ├── tema.py             Colores, letras y medidas
-    │       ├── componentes.py      Resaltador, cuadrícula y viñetas
-    │       ├── portada.py          Portada y encabezado de páginas
+    │       ├── componentes.py      Títulos numerados, tarjetas, marcos de imagen, renglones
+    │       ├── portada.py          Portada con foto, encabezado y pie de las páginas
     │       ├── mapa_conceptual.py  Mapa conceptual
-    │       ├── graficos.py         Gráficos de barras y torta
-    │       ├── documento.py        Arma el PDF sección por sección
-    │       └── fuentes/            Letra Poppins
+    │       ├── graficos.py         Gráficos de barras, columnas y dona (colores propios)
+    │       ├── documento.py        Arma el PDF: índice, secciones, figuras y soluciones
+    │       └── fuentes/            Letras Poppins y Fraunces
     │
     └── utilidades/
-        └── ayudantes.py            Funciones pequeñas (tiempo de lectura, etc.)
+        ├── ayudantes.py            Funciones pequeñas (tiempo de lectura, etc.)
+        └── trabajos.py             Resúmenes en segundo plano con su avance (barra de progreso)
 
 ## Cómo funciona (MVC)
 1. El usuario llena la página (VISTA: index.html + estilos.css + principal.js).
 2. El CONTROLADOR (resumen_controlador.py) recibe el PDF y las opciones.
 3. Los MODELOS leen el PDF, piden el resumen a Gemini y crean las imágenes.
+   Gemini recibe el PDF completo, no solo su texto: lee también imágenes, diagramas,
+   tablas, gráficos y páginas escaneadas o fotografiadas (un PDF de puras imágenes
+   también se resume). Los PDF de más de 14 MB se suben aparte a Gemini y se borran
+   de allá apenas termina el resumen.
+   La cantidad de temas depende del documento (de 2 a 8): no se deja afuera ninguna parte
+   importante, tampoco en el resumen para niños (que usa oraciones cortas pero conserva cifras,
+   fechas y nombres).
 4. El CONTROLADOR pasa los datos a la VISTA del PDF (vistas/pdf/documento.py).
 5. El usuario descarga el PDF.
+
+El resumen se hace en segundo plano: la página muestra una barra con el porcentaje y el paso
+real («Gemini está leyendo el PDF…», «Creando la imagen 2 de 3…», «Armando el PDF…»). Si se
+recarga o se cierra la pestaña, al volver la barra sigue y el PDF se descarga igual. Los
+resúmenes terminados quedan una hora en el servidor.
+
+## El PDF que se descarga
+- Portada con foto de borde a borde (la que sube el usuario, con vista previa y recorte; si no
+  sube, la mejor imagen del PDF que elige Gemini) y el título sobre un rectángulo violeta.
+- Índice con páginas, secciones numeradas (01, 02…) y subtemas (3.1, 3.2…), encabezado con la
+  sección actual y pie con barra de avance y «3 / 7».
+- Tarjetas de ideas clave, la cifra más importante del documento, mapa conceptual.
+- Imágenes junto al tema que ilustran, numeradas («Figura 1 ·») y con pie de foto.
+- Gráficos con colores propios (no dependen del resaltador) y sin cortarse entre páginas.
+- Preguntas con renglones para responder y una hoja final de soluciones y notas.
+
+## Imágenes con IA
+Con `POLLINATIONS_KEY` se usan los créditos gratis del día de Pollinations: MAI Image 2.6
+(fotos realistas) para secundaria y adultos, y FLUX 1.1 Pro (ilustración) para niños. Si un
+modelo falla o se acaban los créditos, se pasa solo al flux básico. Nunca se compra nada.
+Nano Banana (las imágenes de Gemini) no se usa: por la API no tiene plan gratis.
 
 ## Instalar y ejecutar en tu PC
     pip install -r requirements.txt
@@ -63,7 +93,9 @@ Render, en la sección "Environment", agregá dos variables:
     GEMINI_API_KEY = tu-clave-de-gemini
     POLLINATIONS_KEY = tu-clave-de-pollinations
 
-Comando de arranque (ya viene en el `Procfile`): `gunicorn app:app`
+Comando de arranque (ya viene en el `Procfile`): `gunicorn app:app --workers 1 --threads 8 --timeout 120`.
+Tiene que ser **un solo worker**: el avance de cada resumen vive en la memoria de ese proceso
+(con varios, la página podría preguntar a otro que no lo conoce).
 
 ## APIs gratis
 - Gemini: mantené el "Nivel gratuito" en AI Studio y no uses "Configurar la facturación".
