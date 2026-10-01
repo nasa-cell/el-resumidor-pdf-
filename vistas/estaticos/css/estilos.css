@@ -298,10 +298,157 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .barra { height: 10px; margin-top: 14px; overflow: hidden; display: none; background: var(--cuadricula); border-radius: 999px; }
 .barra.visible { display: block; }
 .barra div { height: 100%; width: 0; background: var(--violeta); border-radius: 999px; transition: width .7s ease-out; }
-.porcentaje { margin-top: 6px; font-weight: 700; font-size: .9rem; color: var(--violeta-oscuro); font-variant-numeric: tabular-nums; min-height: 0; }
 @media (prefers-reduced-motion: reduce) { .barra div { transition: none; } .resaltado { transition: none; } }
 .estado { margin-top: 12px; min-height: 26px; font-size: .95rem; color: var(--tinta); }
 .estado.error { color: var(--error); }
+.estado:empty { display: none; }
+.nota-final { text-align: center; }
+
+/* Varios PDF: una tarjeta por documento, de 2 en 2, cada una con su barra */
+.lote { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.lote[hidden] { display: none; }
+.total { font-weight: 700; font-size: .9rem; color: var(--violeta-oscuro); font-variant-numeric: tabular-nums; }
+.escoba {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px 5px 9px; cursor: pointer;
+  border: 1.5px solid var(--tinta); border-radius: 999px; background: var(--papel); color: var(--tinta);
+  font: 500 .8rem "Poppins", system-ui, sans-serif;
+}
+.escoba svg { width: 18px; height: 18px; flex: none; }
+.escoba:disabled { opacity: .4; cursor: not-allowed; }
+@media (hover: hover) and (pointer: fine) { .escoba:not(:disabled):hover svg { animation: barrer .5s ease-in-out; transform-origin: 80% 20%; } }
+@keyframes barrer { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-18deg); } 65% { transform: rotate(12deg); } }
+.escoba:focus-visible, .deshacer button:focus-visible, .bajar-todos:focus-visible { outline: 3px solid var(--violeta-oscuro); outline-offset: 2px; }
+.deshacer {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 8px 12px;
+  border-radius: var(--radio-sm); background: var(--tinta); color: #fff; font-size: .85rem;
+}
+.deshacer[hidden], .vacio[hidden], .bajar-todos[hidden] { display: none; }
+.deshacer button {
+  border: 0; border-radius: 999px; padding: 4px 12px; cursor: pointer;
+  background: var(--amarillo); color: var(--tinta); font: 700 .8rem "Poppins", system-ui, sans-serif;
+}
+.vacio {
+  margin: 12px 0 0; padding: 22px 12px; text-align: center; font-size: .88rem; color: var(--gris);
+  border: 1.5px dashed var(--cuadricula); border-radius: var(--radio-sm);
+}
+.cuadros { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.cuadros:not(:empty) { margin-top: 12px; }
+.bajar-todos {
+  margin-top: 12px; padding: 10px; cursor: pointer; border: 2px solid var(--tinta); border-radius: 999px;
+  background: var(--violeta); color: #fff; font: 700 .9rem "Poppins", system-ui, sans-serif; box-shadow: 3px 3px 0 var(--tinta);
+}
+.bajar-todos:disabled { cursor: not-allowed; background: var(--papel); color: var(--gris); border-color: var(--cuadricula); box-shadow: none; }
+@media (max-width: 520px) { .cuadros { grid-template-columns: minmax(0, 1fr); } }
+.pdf-tarjeta {
+  min-width: 0; padding: 11px 13px; background: var(--papel);
+  border: 1.5px solid var(--cuadricula); border-radius: var(--radio-sm);
+}
+.pdf-tarjeta[data-fase="listo"] { border-color: var(--verde); }
+.pdf-tarjeta[data-fase="error"] { border-color: var(--error); }
+.pdf-fila { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pdf-icono {
+  flex: none; display: grid; place-items: center; width: 28px; height: 34px; border-radius: 5px;
+  background: #F3EEFF; color: var(--violeta-oscuro); border: 1.5px solid #CFC2FA; font-size: .6rem; font-weight: 700;
+}
+.pdf-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-size: .88rem; }
+.pdf-chip {
+  flex: none; padding: 1px 9px; border-radius: 999px; font-size: .7rem; font-weight: 700;
+  background: var(--cuadricula); color: var(--gris);
+}
+.pdf-tarjeta[data-fase="haciendo"] .pdf-chip { background: #F3EEFF; color: var(--violeta-oscuro); }
+.pdf-tarjeta[data-fase="listo"] .pdf-chip { background: #DDF3E6; color: #1C7A45; }
+.pdf-tarjeta[data-fase="error"] .pdf-chip { background: #F8DEDA; color: var(--error); }
+.pdf-tarjeta .barra { height: 8px; margin: 9px 0 6px; }
+.pdf-tarjeta[data-fase="listo"] .barra div { background: var(--verde); }
+.pdf-tarjeta[data-fase="error"] .barra div { background: var(--error); }
+.pdf-paso { flex: 1; min-width: 0; font-size: .78rem; line-height: 1.4; color: var(--gris); }
+.pdf-tarjeta[data-fase="error"] .pdf-paso { color: var(--error); }
+.pdf-accion { flex: none; font-weight: 700; font-size: .85rem; color: var(--violeta-oscuro); font-variant-numeric: tabular-nums; }
+.pdf-boton {
+  border: 1.5px solid var(--tinta); background: var(--amarillo); color: var(--tinta); cursor: pointer;
+  font: 700 .74rem "Poppins", system-ui, sans-serif; padding: 4px 11px; border-radius: 999px;
+}
+.pdf-boton:focus-visible { outline: 3px solid var(--violeta-oscuro); outline-offset: 2px; }
+/* Los botones chicos de las tarjetas, la escoba y la campana no usan el estilo general de «button»
+   (ancho completo, fondo violeta y sombra abajo). */
+.pdf-boton, .pdf-bajar, .escoba, .campana, .deshacer button { width: auto; }
+.pdf-boton, .escoba, .campana, .deshacer button { box-shadow: none; }
+.pdf-boton:hover:not(:disabled), .deshacer button:hover:not(:disabled) { background: var(--amarillo); }
+.escoba:hover:not(:disabled) { background: #F3EEFF; }
+.campana:hover:not(:disabled) { background: rgba(255, 255, 255, .2); }
+.pdf-bajar:hover:not(:disabled) { background: var(--amarillo); }
+.bajado .pdf-bajar:hover:not(:disabled) { background: #DDF3E6; }
+.pdf-boton:active:not(:disabled), .escoba:active:not(:disabled), .campana:active:not(:disabled),
+.deshacer button:active:not(:disabled) { transform: none; box-shadow: none; }
+.pdf-bajar:disabled { opacity: 1; }
+.pdf-aviso { margin: 4px 0 0; font-size: .74rem; line-height: 1.4; color: var(--gris); }
+.pdf-aviso:empty { display: none; }
+
+/* Botón de descarga de cada resumen: apagado mientras se crea; al terminar se enciende y queda encendido */
+.pdf-bajar {
+  flex: none; display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border-radius: 50%; cursor: pointer;
+  border: 2px solid var(--tinta); background: var(--amarillo); color: var(--tinta); box-shadow: 2px 2px 0 var(--tinta);
+}
+.pdf-bajar[hidden] { display: none; }
+.pdf-bajar svg { width: 18px; height: 18px; }
+.pdf-bajar:disabled { cursor: not-allowed; border: 1.5px dashed #C9C2B6; background: #F7F4EE; color: #B3ACA0; box-shadow: none; }
+.pdf-tarjeta[data-fase="listo"] .pdf-bajar:not(:disabled) { animation: encender .45s cubic-bezier(.23, 1, .32, 1); }
+.pdf-bajar:not(:disabled):active { transform: translate(2px, 2px); box-shadow: none; }
+.bajado .pdf-bajar:not(:disabled) { background: #DDF3E6; border-color: var(--verde); color: #1C7A45; box-shadow: 2px 2px 0 var(--verde); animation: none; }
+.pdf-bajar:focus-visible { outline: 3px solid var(--violeta-oscuro); outline-offset: 2px; }
+@keyframes encender { 0% { transform: scale(.6); } 70% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+/* Campana del menú (páginas que no son «Crear resumen») */
+.campana {
+  position: relative; flex: none; display: grid; place-items: center; width: 38px; height: 38px; padding: 0; margin-left: 4px;
+  border: 0; border-radius: 50%; background: rgba(255, 255, 255, .1); color: var(--amarillo); cursor: pointer;
+}
+.campana:focus-visible { outline: 3px solid var(--amarillo); outline-offset: 2px; }
+.campana-icono { width: 19px; height: 19px; }
+.campana.suena .campana-icono { animation: sonar 1s ease-in-out 2; transform-origin: 50% 10%; }
+@keyframes sonar { 0%, 100% { transform: rotate(0); } 15% { transform: rotate(16deg); } 30% { transform: rotate(-14deg); }
+  45% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } 75% { transform: rotate(3deg); } }
+.campana-anillo { position: absolute; inset: 0; width: 100%; height: 100%; }
+.campana-anillo circle { fill: none; stroke-width: 2.5; }
+.campana-anillo-fondo { stroke: rgba(255, 255, 255, .15); }
+.campana-anillo-avance { stroke: var(--amarillo); stroke-linecap: round; transition: stroke-dashoffset .7s ease-out; }
+.campana-globo {
+  position: absolute; top: -4px; right: -4px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 999px;
+  background: var(--rosa); color: var(--tinta); border: 2px solid var(--tinta); font: 700 .66rem/14px "Poppins", sans-serif; text-align: center;
+}
+.campana-globo[hidden] { display: none; }
+.campana-panel {
+  position: absolute; top: calc(100% + 8px); right: 16px; z-index: 30; width: min(320px, calc(100vw - 32px));
+  max-height: min(420px, 70vh); overflow-y: auto; padding: 12px;
+  background: var(--papel); color: var(--tinta); border: 2px solid var(--tinta); border-radius: 14px; box-shadow: 4px 4px 0 var(--tinta);
+}
+.campana-panel[hidden] { display: none; }
+.campana-titulo { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 6px; font-weight: 700; font-size: .9rem; }
+.campana-cuenta { color: var(--gris); font-weight: 500; font-variant-numeric: tabular-nums; }
+.campana-item { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 7px 0; border-top: 1px solid var(--cuadricula); }
+.campana-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .82rem; font-weight: 500; }
+.campana-mini { flex: none; width: 50px; height: 6px; overflow: hidden; border-radius: 999px; background: var(--cuadricula); }
+.campana-mini span { display: block; height: 100%; background: var(--violeta); }
+.campana-item.listo .campana-mini span { background: var(--verde); }
+.campana-item.error .campana-mini span { background: var(--error); }
+.campana-pct { flex: none; width: 38px; text-align: right; font-size: .74rem; font-weight: 700; color: var(--violeta-oscuro); font-variant-numeric: tabular-nums; }
+.campana-item.error .campana-pct { color: var(--error); }
+.campana-item .pdf-bajar { width: 30px; height: 30px; }
+.campana-item .pdf-bajar svg { width: 15px; height: 15px; }
+.campana-pie { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--cuadricula); }
+.campana-pie a { font-size: .82rem; font-weight: 700; color: var(--violeta-oscuro); }
+.campana-pie .escoba { padding: 3px 10px 3px 8px; font-size: .74rem; }
+.campana-pie .escoba svg { width: 15px; height: 15px; }
+.campana-aviso {
+  position: fixed; right: 16px; bottom: 16px; z-index: 50; max-width: min(300px, calc(100vw - 32px)); padding: 10px 14px;
+  background: var(--violeta); color: #fff; border: 2px solid var(--tinta); border-radius: var(--radio-sm);
+  font-size: .85rem; font-weight: 500; box-shadow: 3px 3px 0 var(--tinta);
+}
+.campana-aviso[hidden] { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .campana.suena .campana-icono, .pdf-bajar, .escoba svg { animation: none !important; }
+  .campana-anillo-avance { transition: none; }
+}
 
 .ahorro {
   display: none; margin-top: 28px; gap: 16px; align-items: flex-start;
@@ -345,18 +492,3 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 480px) { .detalle { padding-left: 0; } }
 @media (max-width: 480px) { .paso { padding: 18px 16px 20px; grid-template-columns: 28px 1fr; } }
 
-/* Aviso flotante en las demás páginas mientras se crea un resumen */
-.aviso-trabajo {
-  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 50; margin: 0 auto; max-width: 440px;
-  display: flex; align-items: center; gap: 12px; padding: 13px 18px;
-  background: var(--papel); color: var(--tinta); text-decoration: none; font-weight: 500; font-size: .92rem;
-  border: 1.5px solid var(--violeta); border-radius: var(--radio-sm); box-shadow: 0 10px 28px rgba(23, 21, 31, .16);
-}
-.aviso-trabajo.listo { background: var(--violeta); color: #fff; border-color: var(--violeta-oscuro); }
-.aviso-trabajo.error { border-color: var(--error); color: var(--error); }
-.aviso-trabajo-giro {
-  flex: none; width: 18px; height: 18px; border-radius: 50%;
-  border: 2.5px solid #E4DCF9; border-top-color: var(--violeta); animation: aviso-girar .8s linear infinite;
-}
-@keyframes aviso-girar { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .aviso-trabajo-giro { animation: none; } }

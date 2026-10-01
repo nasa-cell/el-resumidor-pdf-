@@ -21,6 +21,7 @@ import requests
 from PIL import Image
 
 from configuracion import CLOUDFLARE_ACCOUNT_ID, CLOUDFLARE_API_TOKEN, POLLINATIONS_KEY
+from utilidades.turnos import TurnoJusto
 
 URL_CON_CLAVE = "https://gen.pollinations.ai/image/{}"
 URL_SIN_CLAVE = "https://image.pollinations.ai/prompt/{}"
@@ -52,6 +53,9 @@ URL_CLOUDFLARE = "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/@cf/bl
 PAUSA_CLOUDFLARE_SIN_CUPO = 3600   # si se acabó el cupo del día, no se vuelve a probar en una hora
 
 _candado = threading.Lock()
+# Con varios resúmenes a la vez, las imágenes se crean de a una entre todos (los servicios gratis
+# rechazan pedidos juntos), por turnos: una de cada resumen y vuelve a empezar.
+_turno_imagen = TurnoJusto(1)
 _estado = {"ultima_sin_clave": 0.0, "clave_sin_creditos_hasta": 0.0, "cloudflare_sin_cupo_hasta": 0.0}
 
 
@@ -140,12 +144,20 @@ def _sin_clave(completo, semilla, al_esperar):
     return None
 
 
-def crear_una(numero, pedido, nivel, al_esperar=None):
+def crear_una(numero, pedido, nivel, al_esperar=None, al_esperar_turno=None):
     """Una imagen: (JPEG, pie de foto) o None si de verdad no se pudo.
-    'al_esperar(segundos)' avisa cuando hay que esperar al servicio gratis."""
+    'al_esperar(segundos)' avisa cuando hay que esperar al servicio gratis y 'al_esperar_turno()'
+    cuando otro resumen está creando una imagen."""
     prompt = str(pedido.get("prompt_en", "")).strip().rstrip(".")
     if not prompt:
         return None
+    if al_esperar_turno and _turno_imagen.ocupado():
+        al_esperar_turno()
+    with _turno_imagen:
+        return _crear(numero, prompt, pedido, nivel, al_esperar)
+
+
+def _crear(numero, prompt, pedido, nivel, al_esperar):
     texto = f"{prompt}. {ESTILOS.get(nivel, ESTILOS['secundaria'])}, {SIN_TEXTO}"
     completo = urllib.parse.quote(texto)
     semilla = 40 + numero

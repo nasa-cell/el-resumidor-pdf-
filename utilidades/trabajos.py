@@ -3,16 +3,29 @@
 La página manda el PDF, recibe un número de trabajo y pregunta cada segundo cómo va. Si el
 usuario recarga o cierra la pestaña, el trabajo sigue: al volver, la página retoma la barra con
 el mismo número. Los trabajos viven en memoria (una hora); si el servidor se reinicia, se pierden.
+
+Se pueden mandar hasta 8 PDF juntos y se hacen los 8 al mismo tiempo (A_LA_VEZ). Si llegan más
+(por ejemplo, otra persona a la vez), esperan en cola y empiezan solos, en orden de llegada.
 """
 import math
 import threading
 import time
+import urllib.parse
 import uuid
 
+from utilidades.turnos import TurnoJusto
+
 GUARDAR_SEGUNDOS = 60 * 60
+A_LA_VEZ = 8            # resúmenes que se hacen al mismo tiempo
+MAXIMO_PENDIENTES = 16  # haciéndose + en cola, entre todas las personas
 
 _trabajos = {}
 _candado = threading.Lock()
+_turnos = TurnoJusto(A_LA_VEZ)
+
+
+class ServidorOcupado(Exception):
+    """Hay demasiados resúmenes pendientes: hay que esperar a que terminen algunos."""
 
 
 class ErrorParaElUsuario(Exception):
@@ -25,6 +38,7 @@ class Trabajo:
         self.porcentaje = 0
         self.paso = "Recibido. Empezando…"
         self.fase = "procesando"          # procesando | listo | error
+        self.en_cola = True               # esperando turno para empezar
         self.error = None
         self.pdf = None
         self.cabeceras = {}
@@ -36,6 +50,7 @@ class Trabajo:
             self.porcentaje = max(self.porcentaje, min(99, int(porcentaje)))
             if paso:
                 self.paso = paso
+            self.en_cola = False
             self.actualizado = time.time()
 
     def mientras(self, desde, hasta, segundos_esperados, paso, tarea):
@@ -71,8 +86,15 @@ class Trabajo:
 
     def estado(self):
         with _candado:
-            return {"id": self.id, "fase": self.fase, "porcentaje": self.porcentaje, "paso": self.paso,
-                    "error": self.error}
+            estado = {"id": self.id, "fase": self.fase, "porcentaje": self.porcentaje, "paso": self.paso,
+                      "error": self.error, "en_cola": self.en_cola and self.fase == "procesando"}
+            if self.fase == "listo":
+                # Lo que muestra la tarjeta del resumen terminado, sin tener que bajar el PDF.
+                estado["resultado"] = {"paginas": self.cabeceras.get("X-Paginas"),
+                                       "min_original": self.cabeceras.get("X-Min-Original"),
+                                       "min_resumen": self.cabeceras.get("X-Min-Resumen"),
+                                       "aviso": urllib.parse.unquote(self.cabeceras.get("X-Aviso", ""))}
+            return estado
 
 
 def _limpiar():
@@ -87,15 +109,21 @@ def empezar(funcion, *argumentos, identificador=None):
     'identificador' es el número que propone la página (32 letras y números); si no sirve o ya
     existe, se crea uno nuevo."""
     _limpiar()
+    with _candado:
+        if sum(t.fase == "procesando" for t in _trabajos.values()) >= MAXIMO_PENDIENTES:
+            raise ServidorOcupado()
     valido = isinstance(identificador, str) and len(identificador) == 32 and \
         all(c in "0123456789abcdef" for c in identificador)
     with _candado:
         trabajo = Trabajo(identificador if valido and identificador not in _trabajos else None)
+        trabajo.paso = "En cola: empieza cuando termine otro resumen."
         _trabajos[trabajo.id] = trabajo
 
     def correr():
         try:
-            funcion(trabajo, *argumentos)
+            with _turnos:
+                trabajo.avanzar(1, "Recibido. Empezando…")
+                funcion(trabajo, *argumentos)
         except ErrorParaElUsuario as error:
             trabajo.fallar(str(error))
         except Exception:
@@ -110,3 +138,4 @@ def empezar(funcion, *argumentos, identificador=None):
 def buscar(identificador):
     with _candado:
         return _trabajos.get(identificador)
+

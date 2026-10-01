@@ -11,10 +11,15 @@ from configuracion import (COLORES, MAX_CANDIDATAS, MAX_GRAFICOS, MAX_IMAGENES, 
 from modelos import imagen_portada, servicio_gemini, servicio_imagenes
 from modelos.lector_pdf import DocumentoPDF
 from utilidades import trabajos
+from utilidades.turnos import TurnoJusto
 from utilidades.ayudantes import entero_en_rango, minutos_de_lectura, nombre_seguro
 from vistas.pdf.documento import crear_pdf_resumen
 
 resumen_bp = Blueprint("resumen", __name__)
+
+# Armar el PDF es lo que más memoria usa: con 8 resúmenes a la vez, se arman de 2 en 2 (por orden
+# de llegada) para que el servidor gratis no se quede sin memoria.
+_turno_armar = TurnoJusto(2)
 
 
 @resumen_bp.route("/")
@@ -127,8 +132,12 @@ def resumir():
 
     formulario = {c: request.form.get(c, "").strip() for c in ("estudiante", "curso", "docente", "autor")}
     # El número de trabajo lo propone la página (lo guarda antes de subir, para no perderlo nunca).
-    trabajo = trabajos.empezar(_procesar, contenido, op, formulario, archivo.filename, foto_portada,
-                               portada_del_pdf, avisos, identificador=request.form.get("id"))
+    try:
+        trabajo = trabajos.empezar(_procesar, contenido, op, formulario, archivo.filename, foto_portada,
+                                   portada_del_pdf, avisos, identificador=request.form.get("id"))
+    except trabajos.ServidorOcupado:
+        return jsonify(error="Hay muchos resúmenes creándose en este momento. Espera unos minutos y "
+                             "vuelve a intentarlo."), 503
     return jsonify(trabajo.estado()), 202
 
 
@@ -177,10 +186,15 @@ def _procesar(trabajo, contenido, op, formulario, nombre_archivo, foto_portada, 
             def al_esperar(segundos, i=i):
                 trabajo.avanzar(0, f"Imagen {i + 1} de {len(pedidos)}: el servicio gratis de imágenes pide "
                                    f"esperar unos {segundos} segundos…")
+
+            def al_esperar_turno(i=i):
+                trabajo.avanzar(0, f"Imagen {i + 1} de {len(pedidos)}: esperando su turno (otro resumen "
+                                   "está creando una imagen)…")
             hecha = trabajo.mientras(hasta + i * tramo, hasta + (i + 1) * tramo, 40,
                                      f"Creando la imagen {i + 1} de {len(pedidos)} con IA…",
-                                     lambda i=i, pedido=pedido, al_esperar=al_esperar:
-                                     servicio_imagenes.crear_una(i, pedido, op["nivel"], al_esperar))
+                                     lambda i=i, pedido=pedido, al_esperar=al_esperar, al_esperar_turno=al_esperar_turno:
+                                     servicio_imagenes.crear_una(i, pedido, op["nivel"], al_esperar,
+                                                                 al_esperar_turno))
             if hecha:
                 imagenes.append({"datos": hecha[0], "pie": hecha[1], "tema": pedido.get("tema")})
         if len(imagenes) < n_img_ia:
@@ -219,10 +233,13 @@ def _procesar(trabajo, contenido, op, formulario, nombre_archivo, foto_portada, 
     }
 
     # 4. Armar el PDF (dos vueltas: la primera cuenta las páginas para el índice)
-    trabajo.avanzar(90, "Armando el PDF: páginas, índice y gráficos…")
-    pdf = crear_pdf_resumen(datos, color=op["color"], imagenes=imagenes, incluir_mapa=op["con_mapa"],
-                            imagen_portada=foto_portada,
-                            al_avanzar=lambda: trabajo.avanzar(95, "Dando los últimos toques…"))
+    if _turno_armar.ocupado():
+        trabajo.avanzar(88, "Esperando turno para armar el PDF (otros resúmenes se están armando)…")
+    with _turno_armar:
+        trabajo.avanzar(90, "Armando el PDF: páginas, índice y gráficos…")
+        pdf = crear_pdf_resumen(datos, color=op["color"], imagenes=imagenes, incluir_mapa=op["con_mapa"],
+                                imagen_portada=foto_portada,
+                                al_avanzar=lambda: trabajo.avanzar(95, "Dando los últimos toques…"))
     trabajo.terminar(pdf, {
         "nombre": nombre_seguro(nombre_archivo),
         "X-Paginas": str(documento.paginas),
@@ -239,6 +256,18 @@ def estado(identificador):
         return jsonify(error="Ese resumen ya no está: pasó más de una hora o el servidor se reinició. "
                              "Vuelve a crearlo."), 404
     return jsonify(trabajo.estado())
+
+
+@resumen_bp.route("/estados")
+def estados():
+    """El avance de varios resúmenes en un solo pedido (?ids=a,b,c), para no preguntar uno por uno."""
+    respuesta = {}
+    for identificador in request.args.get("ids", "").split(",")[:16]:
+        trabajo = trabajos.buscar(identificador)
+        respuesta[identificador] = trabajo.estado() if trabajo else {
+            "id": identificador, "fase": "error", "perdido": True,
+            "error": "Ese resumen ya no está: pasó más de una hora o el servidor se reinició. Vuelve a crearlo."}
+    return jsonify(respuesta)
 
 
 @resumen_bp.route("/resumir/<identificador>/pdf")

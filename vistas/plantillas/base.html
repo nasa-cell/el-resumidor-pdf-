@@ -16,9 +16,10 @@
 {% block contenido %}{% endblock %}
 </main>
 
+<script src="{{ url_for('static', filename='js/lista_resumenes.js') }}"></script>
 {% block script %}{% endblock %}
 <script src="{{ url_for('static', filename='js/efectos.js') }}"></script>
-{% if pagina != 'crear' %}<script src="{{ url_for('static', filename='js/aviso_trabajo.js') }}"></script>{% endif %}
+{% if pagina != 'crear' %}<script src="{{ url_for('static', filename='js/campana.js') }}"></script>{% endif %}
 
 </body>
 </html>

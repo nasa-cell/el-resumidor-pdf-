@@ -16,6 +16,7 @@ import requests
 
 from configuracion import (CONCEPTOS, GEMINI_API_KEY, GEMINI_MODELO, NIVELES,
                            PREGUNTAS, PUNTOS_CLAVE, RAMAS_MAPA, TEMAS_MAXIMO, TEMAS_MINIMO)
+from utilidades.turnos import TurnoJusto
 
 BASE = "https://generativelanguage.googleapis.com"
 URL = f"{BASE}/v1beta/models/{GEMINI_MODELO}:generateContent"
@@ -23,6 +24,14 @@ SUBIDA = f"{BASE}/upload/v1beta/files"
 # Hasta este tamaño el PDF va dentro del mismo pedido (Gemini acepta pedidos de hasta 20 MB y
 # el PDF crece un tercio al pasarlo a base64). Si es más grande, se sube aparte.
 MAXIMO_EN_PEDIDO = 14 * 1024 * 1024
+# Con varios resúmenes a la vez, los 8 que se están haciendo leen con Gemini al mismo tiempo. Los
+# pedidos esperan en fila por orden de llegada: quien termina uno y pide otro se pone al final, así
+# todos avanzan parejo.
+GEMINI_A_LA_VEZ = 8
+# Si igual se pasa del límite por minuto (429), se espera lo que pide Gemini y se reintenta.
+ESPERAS_LIMITE = [20, 40, 60]
+
+_turnos_gemini = TurnoJusto(GEMINI_A_LA_VEZ)
 
 
 class ErrorGemini(Exception):
@@ -241,14 +250,33 @@ def _pedir(partes, alta=False):
     if alta:
         configuracion["mediaResolution"] = "MEDIA_RESOLUTION_HIGH"
     cuerpo = {"contents": [{"parts": partes}], "generationConfig": configuracion}
-    for intento in range(3):
+    saturado = limite = 0
+    while True:
         try:
-            r = requests.post(URL, json=cuerpo, timeout=300, headers=_cabeceras())
+            with _turnos_gemini:
+                r = requests.post(URL, json=cuerpo, timeout=300, headers=_cabeceras())
         except requests.RequestException:
             raise ErrorGemini("No se pudo conectar con Gemini. Revisa tu internet e inténtalo otra vez.")
-        if r.status_code != 503 or intento == 2:
+        if r.status_code == 503 and saturado < 2:
+            saturado += 1
+            time.sleep(3)
+        elif r.status_code == 429 and limite < len(ESPERAS_LIMITE) and _limite_por_minuto(r):
+            time.sleep(_segundos_a_esperar(r, ESPERAS_LIMITE[limite]))
+            limite += 1
+        else:
             return r
-        time.sleep(3)
+
+
+def _limite_por_minuto(r):
+    """El 429 de Gemini puede ser del límite por minuto (pasa en un rato) o del límite del día
+    (hasta mañana no hay caso)."""
+    return "PerDay" not in r.text
+
+
+def _segundos_a_esperar(r, por_defecto):
+    """Gemini dice cuánto esperar («retryDelay»: "23s"); si no lo dice, se usa 'por_defecto'."""
+    encontrado = re.search(r'"retryDelay"\s*:\s*"(\d+)', r.text)
+    return min(60, int(encontrado.group(1)) + 1) if encontrado else por_defecto
 
 
 def _mensaje_de(r):

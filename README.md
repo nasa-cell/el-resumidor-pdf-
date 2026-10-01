@@ -25,7 +25,8 @@
     │   ├── estaticos/
     │   │   ├── css/estilos.css     Diseño de la página (solo CSS)
     │   │   ├── js/principal.js     Funcionamiento de la página (solo JavaScript)
-    │   │   └── js/aviso_trabajo.js Aviso en las demás páginas mientras se crea un resumen
+    │   │   ├── js/lista_resumenes.js Lista de tus resúmenes guardada en el navegador (todas las páginas)
+    │   │   └── js/campana.js       Campana del menú: avance, aviso al terminar y descargas
     │   └── pdf/                    Diseño del PDF que se descarga
     │       ├── tema.py             Colores, letras y medidas
     │       ├── componentes.py      Títulos numerados, tarjetas, marcos de imagen, renglones
@@ -37,7 +38,8 @@
     │
     └── utilidades/
         ├── ayudantes.py            Funciones pequeñas (tiempo de lectura, etc.)
-        └── trabajos.py             Resúmenes en segundo plano con su avance (barra de progreso)
+        ├── trabajos.py             Resúmenes en segundo plano con su avance (barra de progreso)
+        └── turnos.py               Turnos por orden de llegada para que varios resúmenes avancen parejo
 
 ## Cómo funciona (MVC)
 1. El usuario llena la página (VISTA: index.html + estilos.css + principal.js).
@@ -53,13 +55,26 @@
    documento con sus datos (cifras, fechas, nombres) y la app comprueba que cada una esté en el
    resumen; si falta algo, se agrega.
 4. El CONTROLADOR pasa los datos a la VISTA del PDF (vistas/pdf/documento.py).
-5. El usuario descarga el PDF.
+5. El usuario toca el botón de descarga del resumen terminado.
 
 El resumen se hace en segundo plano: la página muestra una barra con el porcentaje y el paso
 real («Gemini está leyendo el PDF…», «Creando la imagen 2 de 3…», «Armando el PDF…»). Si se
-recarga, se cierra la pestaña o se va a otra página, el resumen sigue: las demás páginas
-muestran un aviso con el avance y, al terminar, un botón para volver a descargarlo. Los
-resúmenes terminados quedan una hora en el servidor.
+recarga, se cierra la pestaña o se va a otra página, el resumen sigue: en las demás páginas
+aparece una campana chica al final del menú, con un anillo que se llena con el avance. Cuando
+termina uno, suena, muestra cuántos hay para bajar y un aviso que se va solo; al tocarla se abre
+la lista con el botón de descarga de cada uno. Los resúmenes terminados quedan una hora en el
+servidor.
+
+Se pueden subir hasta 8 PDF juntos, con las mismas opciones para todos. Cada uno tiene su tarjeta
+con su propia barra (de 2 en 2) y los 8 se hacen al mismo tiempo, avanzando parejo: Gemini atiende
+los pedidos por orden de llegada, las imágenes con IA se crean por turnos (una de cada resumen) y
+el PDF final se arma de 2 en 2 para no gastar toda la memoria. Si se intenta agregar un noveno,
+la página lo bloquea y pide esperar a que terminen los demás. Nada se descarga solo: el botón de
+descarga de cada tarjeta está apagado mientras se crea, se enciende al terminar y queda encendido
+para volver a bajarlo; también está «Descargar los terminados». La escoba quita de la lista los
+terminados y los que fallaron (con «Deshacer» por 6 segundos). Si uno falla, solo ese muestra el
+error con «Reintentar». En el servidor puede haber hasta
+16 pendientes entre todas las personas; si llegan más, se pide esperar unos minutos.
 
 ## El PDF que se descarga
 - Portada con foto de borde a borde (la que sube el usuario, con vista previa y recorte; si no

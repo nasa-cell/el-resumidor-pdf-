@@ -4,18 +4,18 @@
 
 <section class="crear">
   <p class="sobre-crear">Empecemos</p>
-  <h2 class="titulo-crear">Sube tu PDF y elige cómo lo quieres</h2>
+  <h2 class="titulo-crear">Sube tus PDF y elige cómo los quieres</h2>
 
   <div class="hoja">
     <section class="paso">
       <div class="num">1</div>
       <div>
-        <h2>Sube el documento</h2>
+        <h2>Sube los documentos</h2>
         <label class="zona" id="zona">
-          <input type="file" id="pdf" accept="application/pdf">
+          <input type="file" id="pdf" accept="application/pdf" multiple>
           <svg class="zona-icono" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M12 4 7.5 8.5M12 4l4.5 4.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <strong>Elige un PDF o arrástralo aquí</strong>
-          <span>Con texto, imágenes, diagramas o escaneado: se lee todo</span>
+          <strong>Elige tus PDF o arrástralos aquí</strong>
+          <span>Hasta 8 a la vez. Con texto, imágenes, diagramas o escaneados: se lee todo</span>
           <div class="archivo" id="nombre"></div>
         </label>
       </div>
@@ -141,9 +141,19 @@
 
     <div class="paso-final">
       <button id="boton" class="magnetico" disabled>Crear mi resumen</button>
-      <div class="barra" id="barra" role="progressbar" aria-label="Avance del resumen" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div></div></div>
-      <div class="porcentaje" id="porcentaje" aria-hidden="true"></div>
+      <p class="nota nota-final">Las opciones de arriba son las mismas para todos los PDF.</p>
       <div class="estado" id="estado" role="status"></div>
+      <div class="lote" id="lote" hidden>
+        <span class="total" id="total" aria-live="polite"></span>
+        <button type="button" class="escoba" id="escoba">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 3.5 13 10.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M11.4 9.4l3.2 3.2-1.2 1.2c-1 1-1.3 2.8-1.5 4.7l-.2 1.5c-2.8-.3-5.6-1.6-7.7-3.8l.5-.6c1.4.2 2.8-.3 3.7-1.2 1-1 .8-2.6 1.8-3.6l1.4-1.4Z" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"/><path d="M7.6 17.9l1.7-1.8M10 19.4l1.3-1.7" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Limpiar terminados
+        </button>
+      </div>
+      <div class="deshacer" id="deshacer" role="status" hidden><span id="deshacer-texto"></span><button type="button" id="boton-deshacer">Deshacer</button></div>
+      <p class="vacio" id="vacio" hidden>Lista limpia. Elige nuevos PDF para empezar otro lote.</p>
+      <div class="cuadros" id="cuadros"></div>
+      <button type="button" class="bajar-todos" id="bajar-todos" hidden>Descargar los terminados</button>
       <div class="aviso" id="aviso"></div>
     </div>
   </div>
@@ -153,7 +163,7 @@
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 3 4 7v6c0 4.2 3 7.4 8 9 5-1.6 8-4.8 8-9V7l-8-4Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </span>
     <div>
-      <p class="ahorro-titulo">Tu resumen está listo</p>
+      <p class="ahorro-titulo" id="ahorro-titulo">Tu resumen está listo</p>
       <p id="ahorro-texto"></p>
       <div class="tiempos">
         <div class="tiempo-bloque">
@@ -166,7 +176,7 @@
           <span class="ahora"><span class="resaltado" id="ahora"></span></span>
         </div>
       </div>
-      <p class="descarga-nota">Tu PDF ya se descargó.</p>
+      <p class="descarga-nota" id="descarga-nota">Toca el botón amarillo para descargarlo.</p>
     </div>
   </div>
 </section>
