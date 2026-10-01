@@ -21,7 +21,7 @@ GEMINI_MODELO = "gemini-flash-lite-latest"   # si da error 404, prueba otro mode
 POLLINATIONS_KEY = os.environ.get("POLLINATIONS_KEY", _POLLINATIONS_LOCAL)
 
 # Cloudflare Workers AI (imágenes con IA, alternativa si Pollinations falla): cuenta gratis en dash.cloudflare.com,
-# AI > Workers AI > REST API. Plan gratis: 10.000 neuronas al día (unas 170 imágenes); si se acaban,
+# AI > Workers AI > REST API. Plan gratis: 10.000 neuronas al día (medido: unas 30-40 imágenes); si se acaban,
 # esa imagen la hace el Pollinations sin clave. En el plan gratis nunca se cobra.
 try:
     from configuracion_local import CLOUDFLARE_ACCOUNT_ID as _CF_CUENTA_LOCAL

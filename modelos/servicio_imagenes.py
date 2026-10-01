@@ -3,8 +3,8 @@
 Orden: 1) Pollinations con clave (enter.pollinations.ai), modelos de primera con los créditos
 gratis del día: MAI Image 2.6 (fotos realistas) para secundaria y adultos y FLUX 1.1 Pro
 (ilustración colorida) para niños. 2) Si falla, Cloudflare Workers AI (FLUX schnell), la
-alternativa: rápida, sin esperas ni marca de agua, con un cupo gratis de unas 170 imágenes al
-día. 3) Si tampoco, el flux de Pollinations sin clave. Nunca se compra nada: sin créditos o sin
+alternativa: rápida, sin esperas ni marca de agua, con un cupo gratis diario (medido: unas
+30-40 imágenes). 3) Si tampoco, el flux de Pollinations sin clave. Nunca se compra nada: sin créditos o sin
 cupo, ese servicio simplemente no se usa.
 
 El flux sin clave es gratis pero deja hacer una imagen cada medio minuto más o menos: si se pide
@@ -49,7 +49,7 @@ ESPERAS_SIN_CLAVE = [20, 25, 30, 40, 50, 60]   # reintentos si igual la rechaza 
 PAUSA_CLAVE_SIN_CREDITOS = 3600  # si la clave no tiene créditos, no se vuelve a probar en una hora
 
 URL_CLOUDFLARE = "https://api.cloudflare.com/client/v4/accounts/{}/ai/run/@cf/black-forest-labs/flux-1-schnell"
-PAUSA_CLOUDFLARE_SIN_CUPO = 1800   # si se acabó el cupo del día, no se vuelve a probar en media hora
+PAUSA_CLOUDFLARE_SIN_CUPO = 3600   # si se acabó el cupo del día, no se vuelve a probar en una hora
 
 _candado = threading.Lock()
 _estado = {"ultima_sin_clave": 0.0, "clave_sin_creditos_hasta": 0.0, "cloudflare_sin_cupo_hasta": 0.0}
@@ -73,7 +73,7 @@ def _con_cloudflare(prompt_completo):
         try:
             r = requests.post(URL_CLOUDFLARE.format(CLOUDFLARE_ACCOUNT_ID),
                               headers={"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"},
-                              json={"prompt": prompt_completo[:2000], "steps": 6}, timeout=120)
+                              json={"prompt": prompt_completo[:2000], "steps": 4}, timeout=120)
             if r.status_code == 429 or (r.status_code >= 400 and "neuron" in r.text.lower()):
                 _estado["cloudflare_sin_cupo_hasta"] = time.time() + PAUSA_CLOUDFLARE_SIN_CUPO
                 return None

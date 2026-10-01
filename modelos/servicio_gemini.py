@@ -8,7 +8,9 @@ secciones o cifras que hayan quedado afuera.
 """
 import base64
 import json
+import re
 import time
+import unicodedata
 
 import requests
 
@@ -82,21 +84,40 @@ Reglas:
 PROMPT_REVISION = """Este es un resumen, en JSON, del documento {origen}, escrito para {nivel}:
 {resumen}
 
-Revísalo contra el documento COMPLETO, sección por sección y de principio a fin (incluidas las
-secciones del final, como recepción, ventas, premios, resultados o conclusiones). Corrígelo:
-- Si falta una sección importante o un dato importante (cifras exactas, fechas, nombres,
-  resultados, valoraciones, lugares), agrégalo: amplía el tema que corresponde o agrega un tema
-  nuevo en el lugar que le toca según el orden del documento. Como máximo {temas_max} temas: si
-  hacen falta más, junta las secciones cortas y parecidas y nombra cada una dentro del texto.
+Revísalo contra el documento COMPLETO, de principio a fin. Primero arma "comprobacion": una
+entrada por CADA sección con título del documento (también las cortas y las del final, como
+recepción, ventas, premios, establecimientos, eventos, valoraciones o conclusiones; no hace falta
+poner las de notas, referencias o enlaces), con sus datos importantes copiados tal cual del
+documento: cifras exactas con su unidad, fechas, nombres propios y valoraciones o porcentajes.
+Después corrige el resumen para que TODO lo de "comprobacion" quede en algún tema:
+- Amplía el tema que corresponde o agrega un tema nuevo en el lugar que le toca según el orden
+  del documento. Como máximo {temas_max} temas: si hacen falta más, junta las secciones cortas y
+  parecidas y nombra cada una dentro del texto (por ejemplo, «En Otros medios y eventos: ...»).
 - Cambia toda cifra aproximada («más de cien», «miles») por la cifra exacta del documento.
 - No quites nada que esté bien, no repitas ideas y no inventes nada. Mismo nivel de lenguaje.
-Responde SOLO con un JSON:
-{{"resumen_general": "1 o 2 párrafos", "puntos_clave": ["{n_puntos} ideas con sus cifras exactas"],
+Responde SOLO con un JSON, en este orden:
+{{"comprobacion": [{{"seccion": "título de la sección", "datos": ["dato tal cual, ej. 1191 capítulos"]}}],
+  "resumen_general": "1 o 2 párrafos", "puntos_clave": ["{n_puntos} ideas con sus cifras exactas"],
   "temas": [{{"subtitulo": "...", "texto": "1 a 3 párrafos"}}],
   "orden": [números]}}
 "orden" tiene un número por cada tema del resumen original, en su orden: la posición (1, 2, 3...)
 que ese tema tiene ahora en tu lista "temas".
 {documento}"""
+
+# Si después del repaso todavía falta algo de la lista de comprobación, un último pedido corto
+# agrega solo eso (sin volver a mandar el documento: los datos ya vienen en la lista).
+PROMPT_COMPLETAR = """Este es un resumen, en JSON, escrito para {nivel}:
+{resumen}
+
+Le faltan estas secciones y datos del documento original (copiados tal cual):
+{faltantes}
+
+Agrégalos todos: en el tema que corresponde o, si no encaja en ninguno, en un tema nuevo en el
+lugar que le toca. Como máximo {temas_max} temas: si no hay lugar, súmalos al tema más cercano y
+nombra la sección dentro del texto. No quites nada, no inventes nada, mismo nivel de lenguaje.
+Responde SOLO con un JSON: {{"temas": [{{"subtitulo": "...", "texto": "1 a 3 párrafos"}}], "orden": [números]}}
+"orden" tiene un número por cada tema del resumen que te pasé, en su orden: la posición (1, 2, 3...)
+que ese tema tiene ahora en tu lista "temas"."""
 
 COMO_LEER_PDF = (
     "Lee TODO el PDF: el texto y también lo que muestran las imágenes, fotos, diagramas, esquemas,\n"
@@ -283,7 +304,64 @@ def _revisar(documento_partes, datos, nivel, texto=None):
         return datos
     if revision is None:
         return datos
-    return _aplicar_revision(datos, revision)
+    datos = _aplicar_revision(datos, revision)
+    return _completar(datos, nivel, revision.get("comprobacion"))
+
+
+def _normalizar(texto):
+    texto = unicodedata.normalize("NFKD", str(texto).lower())
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return re.sub(r"(?<=\d)[.,\s](?=\d{3}\b)", "", texto)   # 1.191 / 1 191 -> 1191
+
+
+def _esta_en(dato, texto_resumen):
+    """Si un dato de la lista de comprobación aparece en el resumen: todos sus números y, si no
+    tiene números, la mayoría de sus palabras importantes."""
+    dato = _normalizar(dato)
+    numeros = re.findall(r"\d+(?:[.,]\d+)?", dato)
+    if numeros:
+        return all(re.search(rf"(?<![\d.,]){re.escape(n)}(?![\d])", texto_resumen) for n in numeros)
+    palabras = [p for p in re.findall(r"[a-z]{4,}", dato)]
+    if not palabras:
+        return True
+    return sum(p in texto_resumen for p in palabras) >= max(1, round(len(palabras) * 0.6))
+
+
+def _faltantes(datos, comprobacion):
+    """Secciones y datos de la lista de comprobación que no aparecen en el resumen."""
+    if not isinstance(comprobacion, list):
+        return []
+    texto_resumen = _normalizar(json.dumps(
+        {k: datos.get(k) for k in ("resumen_general", "puntos_clave", "temas", "dato_destacado")}, ensure_ascii=False))
+    faltan = []
+    for entrada in comprobacion:
+        if not isinstance(entrada, dict) or not str(entrada.get("seccion", "")).strip():
+            continue
+        seccion = str(entrada["seccion"]).strip()
+        datos_seccion = [str(d) for d in (entrada.get("datos") or []) if str(d).strip()]
+        sin_cubrir = [d for d in datos_seccion if not _esta_en(d, texto_resumen)]
+        if sin_cubrir or (not datos_seccion and not _esta_en(seccion, texto_resumen)):
+            faltan.append({"seccion": seccion, "datos": sin_cubrir})
+    return faltan
+
+
+def _completar(datos, nivel, comprobacion):
+    """Último pedido, solo si todavía falta algo de la lista de comprobación."""
+    faltan = _faltantes(datos, comprobacion)
+    if not faltan:
+        return datos
+    texto_faltantes = "\n".join(f"- {f['seccion']}: {'; '.join(f['datos']) if f['datos'] else '(toda la sección)'}"
+                                for f in faltan)
+    prompt = PROMPT_COMPLETAR.format(
+        nivel=NIVELES[nivel][1], temas_max=TEMAS_MAXIMO, faltantes=texto_faltantes,
+        resumen=json.dumps({"temas": datos.get("temas")}, ensure_ascii=False))
+    try:
+        _, completado = _pedir_resumen([{"text": prompt}])
+    except ErrorGemini:
+        return datos
+    if completado is None:
+        return datos
+    return _aplicar_revision(datos, completado)
 
 
 def _aplicar_revision(datos, revision):

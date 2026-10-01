@@ -1,4 +1,4 @@
-# Resumidor de PDF con IA (todo gratis) - Estructura MVC
+# Resumidor de PDF con IA - Estructura MVC
 
 ## Estructura de carpetas
 
@@ -9,8 +9,8 @@
     │
     ├── modelos/                    MODELO: datos y conexión con las APIs
     │   ├── lector_pdf.py           Lee el PDF: páginas, texto e imágenes (sin fondos negros)
-    │   ├── servicio_gemini.py      Manda el PDF entero a Gemini y pide el resumen
-    │   ├── servicio_imagenes.py    Crea imágenes con IA (Pollinations)
+    │   ├── servicio_gemini.py      Manda el PDF entero a Gemini, pide el resumen y lo repasa
+    │   ├── servicio_imagenes.py    Crea imágenes con IA (Pollinations y Cloudflare)
     │   └── imagen_portada.py       Recorta la imagen de la portada
     │
     ├── controladores/              CONTROLADOR: recibe el pedido y coordina
@@ -24,7 +24,8 @@
     │   │   └── crear.html          Página "/crear": el formulario
     │   ├── estaticos/
     │   │   ├── css/estilos.css     Diseño de la página (solo CSS)
-    │   │   └── js/principal.js     Funcionamiento de la página (solo JavaScript)
+    │   │   ├── js/principal.js     Funcionamiento de la página (solo JavaScript)
+    │   │   └── js/aviso_trabajo.js Aviso en las demás páginas mientras se crea un resumen
     │   └── pdf/                    Diseño del PDF que se descarga
     │       ├── tema.py             Colores, letras y medidas
     │       ├── componentes.py      Títulos numerados, tarjetas, marcos de imagen, renglones
@@ -48,13 +49,16 @@
    de allá apenas termina el resumen.
    La cantidad de temas depende del documento (de 2 a 8): no se deja afuera ninguna parte
    importante, tampoco en el resumen para niños (que usa oraciones cortas pero conserva cifras,
-   fechas y nombres).
+   fechas y nombres). Después Gemini repasa el resumen: arma la lista de todas las secciones del
+   documento con sus datos (cifras, fechas, nombres) y la app comprueba que cada una esté en el
+   resumen; si falta algo, se agrega.
 4. El CONTROLADOR pasa los datos a la VISTA del PDF (vistas/pdf/documento.py).
 5. El usuario descarga el PDF.
 
 El resumen se hace en segundo plano: la página muestra una barra con el porcentaje y el paso
 real («Gemini está leyendo el PDF…», «Creando la imagen 2 de 3…», «Armando el PDF…»). Si se
-recarga o se cierra la pestaña, al volver la barra sigue y el PDF se descarga igual. Los
+recarga, se cierra la pestaña o se va a otra página, el resumen sigue: las demás páginas
+muestran un aviso con el avance y, al terminar, un botón para volver a descargarlo. Los
 resúmenes terminados quedan una hora en el servidor.
 
 ## El PDF que se descarga
@@ -72,7 +76,7 @@ Siempre se entregan las imágenes que se pidieron, probando en este orden:
 1. Pollinations con `POLLINATIONS_KEY`: los créditos gratis del día (MAI Image 2.6 para secundaria
    y adultos, FLUX 1.1 Pro para niños).
 2. Si falla, **Cloudflare Workers AI** (FLUX schnell), la alternativa: rápida y sin marca de agua,
-   unas 170 imágenes gratis al día con `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`
+   un cupo gratis de unas 30-40 imágenes al día con `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`
    (dash.cloudflare.com → AI → Workers AI → REST API).
 3. Si tampoco, el flux gratis de Pollinations sin clave. Deja hacer una imagen cada medio minuto,
    así que la app espera y reintenta (la barra lo avisa) hasta tener todas.
