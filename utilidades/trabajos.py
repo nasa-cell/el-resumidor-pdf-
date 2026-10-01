@@ -20,8 +20,8 @@ class ErrorParaElUsuario(Exception):
 
 
 class Trabajo:
-    def __init__(self):
-        self.id = uuid.uuid4().hex
+    def __init__(self, identificador=None):
+        self.id = identificador or uuid.uuid4().hex
         self.porcentaje = 0
         self.paso = "Recibido. Empezando…"
         self.fase = "procesando"          # procesando | listo | error
@@ -82,11 +82,15 @@ def _limpiar():
             del _trabajos[clave]
 
 
-def empezar(funcion, *argumentos):
-    """Crea el trabajo y hace funcion(trabajo, *argumentos) en otro hilo. Devuelve el trabajo."""
+def empezar(funcion, *argumentos, identificador=None):
+    """Crea el trabajo y hace funcion(trabajo, *argumentos) en otro hilo. Devuelve el trabajo.
+    'identificador' es el número que propone la página (32 letras y números); si no sirve o ya
+    existe, se crea uno nuevo."""
     _limpiar()
-    trabajo = Trabajo()
+    valido = isinstance(identificador, str) and len(identificador) == 32 and \
+        all(c in "0123456789abcdef" for c in identificador)
     with _candado:
+        trabajo = Trabajo(identificador if valido and identificador not in _trabajos else None)
         _trabajos[trabajo.id] = trabajo
 
     def correr():

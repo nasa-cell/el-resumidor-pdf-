@@ -110,13 +110,32 @@ $("boton").addEventListener("click", async () => {
     datos.append(n, document.querySelector(`input[name="${n}"]:checked`).value));
   $("aviso").textContent = "";
 
+  // El número de trabajo se guarda ANTES de subir: si la persona cambia de página enseguida,
+  // el resumen igual se sigue (y se avisa en las otras páginas).
+  const id = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(16) + Math.random().toString(16).slice(2))
+    .replace(/-/g, "").padEnd(32, "0").slice(0, 32);
+  datos.append("id", id);
+  guardarTrabajo({ id, nombre: archivo.name, inicio: Date.now() });
+
   empezarEspera();
   mostrar("Subiendo el documento…");
+  // Mientras el archivo se está enviando (un instante), salir de la página cortaría la subida.
+  const noSalir = ev => { ev.preventDefault(); ev.returnValue = ""; };
+  window.addEventListener("beforeunload", noSalir);
   await conEspera(async () => {
-    const r = await fetch("/resumir", { method: "POST", body: datos });
+    let r;
+    try {
+      r = await fetch("/resumir", { method: "POST", body: datos });
+    } finally {
+      window.removeEventListener("beforeunload", noSalir);
+    }
     const e = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(e.error || "No se pudo crear el resumen. Inténtalo otra vez.");
-    guardarTrabajo({ id: e.id, nombre: archivo.name });
+    if (!r.ok) {
+      olvidarTrabajo();
+      throw new Error(e.error || "No se pudo crear el resumen. Inténtalo otra vez.");
+    }
+    if (e.id !== id) guardarTrabajo({ id: e.id, nombre: archivo.name, inicio: Date.now() });
+    mostrar("Listo para empezar. Puedes cambiar de página: el resumen sigue y te avisamos al terminar.");
     await seguir(e.id);
   });
 });

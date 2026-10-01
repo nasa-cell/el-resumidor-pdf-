@@ -20,6 +20,20 @@ GEMINI_MODELO = "gemini-flash-lite-latest"   # si da error 404, prueba otro mode
 # Pollinations (imágenes con IA), clave gratis creada en https://enter.pollinations.ai
 POLLINATIONS_KEY = os.environ.get("POLLINATIONS_KEY", _POLLINATIONS_LOCAL)
 
+# Cloudflare Workers AI (imágenes con IA, alternativa si Pollinations falla): cuenta gratis en dash.cloudflare.com,
+# AI > Workers AI > REST API. Plan gratis: 10.000 neuronas al día (unas 170 imágenes); si se acaban,
+# esa imagen la hace el Pollinations sin clave. En el plan gratis nunca se cobra.
+try:
+    from configuracion_local import CLOUDFLARE_ACCOUNT_ID as _CF_CUENTA_LOCAL
+except ImportError:
+    _CF_CUENTA_LOCAL = ""
+try:
+    from configuracion_local import CLOUDFLARE_API_TOKEN as _CF_TOKEN_LOCAL
+except ImportError:
+    _CF_TOKEN_LOCAL = ""
+CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID", _CF_CUENTA_LOCAL)
+CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", _CF_TOKEN_LOCAL)
+
 # Opciones que puede elegir el usuario
 NIVELES = {
     "ninos": ("Niños (6-11 años)",

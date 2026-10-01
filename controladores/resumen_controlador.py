@@ -41,6 +41,25 @@ def _leer_opciones(formulario):
     }
 
 
+def _pedidos_de_respaldo(datos, pedidos, cantidad):
+    """Si Gemini devolvió menos descripciones de imagen que las pedidas, las que faltan se arman con
+    los temas del resumen que todavía no tienen imagen, para entregar siempre la cantidad pedida."""
+    if cantidad <= 0:
+        return []
+    temas = [t for t in (datos.get("temas") or []) if isinstance(t, dict) and t.get("subtitulo")]
+    usados = {str(p.get("tema")) for p in pedidos}
+    orden = [k for k in range(1, len(temas) + 1) if str(k) not in usados] + list(range(1, len(temas) + 1))
+    respaldo = []
+    for k in orden[:cantidad]:
+        tema = temas[k - 1]
+        primera_frase = str(tema.get("texto", "")).split(".")[0][:220]
+        respaldo.append({"prompt_en": f"{tema['subtitulo']}: {primera_frase}", "descripcion": tema["subtitulo"], "tema": k})
+    if len(respaldo) < cantidad and datos.get("titulo"):
+        titulo = str(datos["titulo"])
+        respaldo += [{"prompt_en": titulo, "descripcion": titulo}] * (cantidad - len(respaldo))
+    return respaldo
+
+
 def _elegidas_por_gemini(datos, candidatas, cantidad):
     """Las imágenes del PDF que Gemini eligió (en su orden de utilidad), con su pie de foto y el
     tema al que acompañan: [{"datos", "pie", "tema"}]."""
@@ -85,9 +104,10 @@ def resumir():
     if op["nivel"] not in NIVELES or op["color"] not in COLORES:
         return jsonify(error="Opción no válida."), 400
 
-    try:
-        documento = DocumentoPDF(archivo)
-    except Exception:
+    # Solo una revisión rápida: leer el PDF entero tarda unos segundos y se hace ya dentro del
+    # trabajo, así esta respuesta llega al instante y la persona puede cambiar de página enseguida.
+    contenido = archivo.read()
+    if b"%PDF" not in contenido[:1024]:
         return jsonify(error="No se pudo abrir el PDF. Puede estar dañado o protegido."), 400
 
     # La imagen de la portada se revisa ya, así un error se ve al toque y no al final.
@@ -106,13 +126,19 @@ def resumir():
     portada_del_pdf = foto_portada is None and request.form.get("portada_respaldo", "pdf") == "pdf"
 
     formulario = {c: request.form.get(c, "").strip() for c in ("estudiante", "curso", "docente", "autor")}
-    trabajo = trabajos.empezar(_procesar, documento, op, formulario, archivo.filename, foto_portada,
-                               portada_del_pdf, avisos)
+    # El número de trabajo lo propone la página (lo guarda antes de subir, para no perderlo nunca).
+    trabajo = trabajos.empezar(_procesar, contenido, op, formulario, archivo.filename, foto_portada,
+                               portada_del_pdf, avisos, identificador=request.form.get("id"))
     return jsonify(trabajo.estado()), 202
 
 
-def _procesar(trabajo, documento, op, formulario, nombre_archivo, foto_portada, portada_del_pdf, avisos):
+def _procesar(trabajo, contenido, op, formulario, nombre_archivo, foto_portada, portada_del_pdf, avisos):
     """Todo el resumen, paso a paso, moviendo la barra de avance."""
+    trabajo.avanzar(2, "Abriendo el PDF…")
+    try:
+        documento = DocumentoPDF(io.BytesIO(contenido))
+    except Exception:
+        raise trabajos.ErrorParaElUsuario("No se pudo abrir el PDF. Puede estar dañado o protegido.")
     trabajo.avanzar(4, f"Leyendo el PDF ({documento.paginas} páginas)…")
     n_img_ia = op["n_imagenes"] if op["origen"] == "ia" else 0
     n_img_pdf = op["n_imagenes"] if op["origen"] == "pdf" else 0
@@ -124,10 +150,11 @@ def _procesar(trabajo, documento, op, formulario, nombre_archivo, foto_portada, 
     # 1. Gemini lee el PDF entero (texto, imágenes, diagramas y escaneos) y arma el resumen.
     # No avisa cuánto le falta: la barra avanza según lo que suele tardar un PDF de ese tamaño.
     hasta = 60 if n_img_ia else 82
-    esperado = min(90, 12 + 2 * documento.paginas + 2 * len(candidatas))
+    # Son dos pedidos: el resumen y el repaso que completa lo que haya quedado afuera.
+    esperado = min(150, 20 + 3 * documento.paginas + 2 * len(candidatas))
     try:
         datos, leyo_todo = trabajo.mientras(
-            10, hasta, esperado, "Gemini está leyendo el PDF y escribiendo el resumen…",
+            10, hasta, esperado, "Gemini está leyendo el PDF, escribiendo el resumen y repasando que no falte nada…",
             lambda: servicio_gemini.resumir(
                 documento.bytes, documento.texto, op["nivel"], op["n_graficos"], n_img_ia,
                 miniaturas=[c["miniatura"] for c in candidatas], n_imagenes_pdf=n_img_pdf, portada=portada_del_pdf))
@@ -140,13 +167,19 @@ def _procesar(trabajo, documento, op, formulario, nombre_archivo, foto_portada, 
 
     # 2. Imágenes: creadas con IA (de a una; la barra avanza con cada una) o elegidas del PDF.
     if n_img_ia:
-        pedidos = [p for p in (datos.get("imagenes_ia") or []) if isinstance(p, dict)][:n_img_ia]
+        pedidos = [p for p in (datos.get("imagenes_ia") or [])
+                   if isinstance(p, dict) and str(p.get("prompt_en", "")).strip()][:n_img_ia]
+        pedidos += _pedidos_de_respaldo(datos, pedidos, n_img_ia - len(pedidos))
         imagenes = []
         tramo = (85 - hasta) / max(1, len(pedidos))
         for i, pedido in enumerate(pedidos):
-            hecha = trabajo.mientras(hasta + i * tramo, hasta + (i + 1) * tramo, 25,
+            def al_esperar(segundos, i=i):
+                trabajo.avanzar(0, f"Imagen {i + 1} de {len(pedidos)}: el servicio gratis de imágenes pide "
+                                   f"esperar unos {segundos} segundos…")
+            hecha = trabajo.mientras(hasta + i * tramo, hasta + (i + 1) * tramo, 40,
                                      f"Creando la imagen {i + 1} de {len(pedidos)} con IA…",
-                                     lambda i=i, pedido=pedido: servicio_imagenes.crear_una(i, pedido, op["nivel"]))
+                                     lambda i=i, pedido=pedido, al_esperar=al_esperar:
+                                     servicio_imagenes.crear_una(i, pedido, op["nivel"], al_esperar))
             if hecha:
                 imagenes.append({"datos": hecha[0], "pie": hecha[1], "tema": pedido.get("tema")})
         if len(imagenes) < n_img_ia:

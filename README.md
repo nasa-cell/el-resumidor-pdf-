@@ -68,9 +68,16 @@ resúmenes terminados quedan una hora en el servidor.
 - Preguntas con renglones para responder y una hoja final de soluciones y notas.
 
 ## Imágenes con IA
-Con `POLLINATIONS_KEY` se usan los créditos gratis del día de Pollinations: MAI Image 2.6
-(fotos realistas) para secundaria y adultos, y FLUX 1.1 Pro (ilustración) para niños. Si un
-modelo falla o se acaban los créditos, se pasa solo al flux básico. Nunca se compra nada.
+Siempre se entregan las imágenes que se pidieron, probando en este orden:
+1. Pollinations con `POLLINATIONS_KEY`: los créditos gratis del día (MAI Image 2.6 para secundaria
+   y adultos, FLUX 1.1 Pro para niños).
+2. Si falla, **Cloudflare Workers AI** (FLUX schnell), la alternativa: rápida y sin marca de agua,
+   unas 170 imágenes gratis al día con `CLOUDFLARE_ACCOUNT_ID` y `CLOUDFLARE_API_TOKEN`
+   (dash.cloudflare.com → AI → Workers AI → REST API).
+3. Si tampoco, el flux gratis de Pollinations sin clave. Deja hacer una imagen cada medio minuto,
+   así que la app espera y reintenta (la barra lo avisa) hasta tener todas.
+
+Nunca se compra nada: sin créditos o sin cupo, ese servicio simplemente no se usa.
 Nano Banana (las imágenes de Gemini) no se usa: por la API no tiene plan gratis.
 
 ## Instalar y ejecutar en tu PC
@@ -79,6 +86,8 @@ Creá un archivo `configuracion_local.py` (no se sube a GitHub) con tus claves:
 
     GEMINI_API_KEY = "tu-clave-de-gemini"
     POLLINATIONS_KEY = "tu-clave-de-pollinations"
+    CLOUDFLARE_ACCOUNT_ID = "tu-account-id"     # opcional: alternativa para las imágenes
+    CLOUDFLARE_API_TOKEN = "tu-token-de-workers-ai"
 
 Después:
 
@@ -88,10 +97,12 @@ Abre en el navegador: http://localhost:5000
 ## Publicar en Render (o cualquier hosting)
 El código nunca lleva las claves escritas adentro (por eso `configuracion_local.py`
 está en `.gitignore` y es seguro subir este repo, incluso público). En el panel de
-Render, en la sección "Environment", agregá dos variables:
+Render, en la sección "Environment", agregá estas variables (las de Cloudflare son opcionales):
 
     GEMINI_API_KEY = tu-clave-de-gemini
     POLLINATIONS_KEY = tu-clave-de-pollinations
+    CLOUDFLARE_ACCOUNT_ID = tu-account-id
+    CLOUDFLARE_API_TOKEN = tu-token-de-workers-ai
 
 Comando de arranque (ya viene en el `Procfile`): `gunicorn app:app --workers 1 --threads 8 --timeout 120`.
 Tiene que ser **un solo worker**: el avance de cada resumen vive en la memoria de ese proceso
@@ -109,8 +120,9 @@ Tiene que ser **un solo worker**: el avance de cada resumen vive en la memoria d
 - "el modelo no existe": Google retiró ese modelo. Entra a https://aistudio.google.com/apikey
   y revisa qué modelos gratis siguen activos, o prueba con "gemini-flash-latest" en configuracion.py
 - "Gemini está saturado": espera unos segundos y prueba de nuevo (la app ya reintenta sola 2 veces)
-- "Se crearon 0 de N imágenes": Pollinations no respondió. Crea una clave gratis en
-  https://enter.pollinations.ai y pégala en POLLINATIONS_KEY, o elige "Sacadas del PDF".
+- "Se crearon X de N imágenes": ningún servicio de imágenes respondió en varios minutos.
+  Configura Cloudflare (ver «Imágenes con IA») para tener una alternativa estable, o elige
+  "Sacadas del PDF".
 
 ## Importante
 Nunca escribas tus claves reales directo en `configuracion.py` ni las subas a un repo
