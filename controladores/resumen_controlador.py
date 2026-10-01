@@ -157,7 +157,8 @@ def _procesar(trabajo, contenido, op, formulario, nombre_archivo, foto_portada, 
             10, hasta, esperado, "Gemini está leyendo el PDF, escribiendo el resumen y repasando que no falte nada…",
             lambda: servicio_gemini.resumir(
                 documento.bytes, documento.texto, op["nivel"], op["n_graficos"], n_img_ia,
-                miniaturas=[c["miniatura"] for c in candidatas], n_imagenes_pdf=n_img_pdf, portada=portada_del_pdf))
+                miniaturas=[c["miniatura"] for c in candidatas], n_imagenes_pdf=n_img_pdf, portada=portada_del_pdf,
+                titulos=documento.titulos(), paginas=documento.paginas))
     except servicio_gemini.ErrorGemini as error:
         raise trabajos.ErrorParaElUsuario(str(error))
     if portada_del_pdf:

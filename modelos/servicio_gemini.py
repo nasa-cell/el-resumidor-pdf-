@@ -85,10 +85,13 @@ PROMPT_REVISION = """Este es un resumen, en JSON, del documento {origen}, escrit
 {resumen}
 
 Revísalo contra el documento COMPLETO, de principio a fin. Primero arma "comprobacion": una
-entrada por CADA sección con título del documento (también las cortas y las del final, como
-recepción, ventas, premios, establecimientos, eventos, valoraciones o conclusiones; no hace falta
-poner las de notas, referencias o enlaces), con sus datos importantes copiados tal cual del
-documento: cifras exactas con su unidad, fechas, nombres propios y valoraciones o porcentajes.
+entrada por CADA sección y subsección con título del documento (también las cortas y las del
+final, como recepción, ventas, premios, establecimientos, eventos, valoraciones o conclusiones; no
+hace falta poner las de notas, referencias o enlaces), con sus 2 a 4 datos MÁS importantes copiados tal cual
+del documento: cifras exactas con su unidad, fechas, nombres propios clave, y las valoraciones de la
+crítica y del público (porcentajes o puntajes de sitios de reseñas, encuestas, rankings); si la
+sección tiene récords o premios (por ejemplo, un récord Guinness), van siempre. No hagas
+listas de todos los nombres o de todas las cifras de una tabla: solo lo principal.{lista_titulos}
 Después corrige el resumen para que TODO lo de "comprobacion" quede en algún tema:
 - Amplía el tema que corresponde o agrega un tema nuevo en el lugar que le toca según el orden
   del documento. Como máximo {temas_max} temas: si hacen falta más, junta las secciones cortas y
@@ -106,27 +109,44 @@ que ese tema tiene ahora en tu lista "temas".
 
 # Si después del repaso todavía falta algo de la lista de comprobación, un último pedido corto
 # agrega solo eso (sin volver a mandar el documento: los datos ya vienen en la lista).
-PROMPT_COMPLETAR = """Este es un resumen, en JSON, escrito para {nivel}:
+PROMPT_COMPLETAR = """Este es un resumen, en JSON, del documento {origen}, escrito para {nivel}:
 {resumen}
 
-Le faltan estas secciones y datos del documento original (copiados tal cual):
+Le faltan estas secciones y datos del documento original:
 {faltantes}
 
-Agrégalos todos: en el tema que corresponde o, si no encaja en ninguno, en un tema nuevo en el
-lugar que le toca. Como máximo {temas_max} temas: si no hay lugar, súmalos al tema más cercano y
-nombra la sección dentro del texto. No quites nada, no inventes nada, mismo nivel de lenguaje.
-Responde SOLO con un JSON: {{"temas": [{{"subtitulo": "...", "texto": "1 a 3 párrafos"}}], "orden": [números]}}
-"orden" tiene un número por cada tema del resumen que te pasé, en su orden: la posición (1, 2, 3...)
-que ese tema tiene ahora en tu lista "temas"."""
+Escribe SOLO lo que falta, con lo que dice el documento, para agregarlo al resumen (lo que ya
+está no se toca). Cada sección que falta queda nombrada con su título TAL CUAL aparece en el
+documento (si lo traduces, pon el original entre paréntesis, ej. «Día de One Piece (One Piece Day)»)
+y con sus datos principales, en 1 a 3 oraciones, con el mismo nivel de lenguaje. No repitas lo que
+el resumen ya dice y no inventes nada.
+Responde SOLO con un JSON:
+{{"agregados": [{{"tema": 3, "subtitulo": "", "texto": "..."}}]}}
+"tema" es el número (1, 2, 3...) del tema del resumen donde va ese texto; usa 0 solo si no encaja
+en ninguno, y entonces pon un "subtitulo" para el tema nuevo.
+{documento}"""
 
 COMO_LEER_PDF = (
     "Lee TODO el PDF: el texto y también lo que muestran las imágenes, fotos, diagramas, esquemas,\n"
     "tablas y gráficos. Si hay páginas escaneadas o fotografiadas, lee el texto que aparece en ellas.\n"
-    "Lo que solo está en una imagen o un diagrama es parte del contenido y va en el resumen.")
+    "Lo que solo está en una imagen o un diagrama es parte del contenido y va en el resumen.\n"
+    "Si un gráfico o una tabla está como imagen, lee sus números (valores, ejes, etiquetas, años y\n"
+    "unidades) tal como aparecen: sirven para el resumen y para los gráficos. Si un número no se\n"
+    "lee con claridad, no lo adivines.")
 COMO_LEER_TEXTO = "Solo tienes el texto del documento (sin sus imágenes)."
 
 
-def _armar_prompt(nivel, n_graficos, n_imagenes_ia, n_imagenes_pdf=0, n_candidatas=0, texto=None, portada=False):
+def temas_maximo_para(paginas):
+    """Un documento largo necesita más temas para no dejar secciones afuera."""
+    if paginas >= 40:
+        return TEMAS_MAXIMO + 4
+    if paginas >= 20:
+        return TEMAS_MAXIMO + 2
+    return TEMAS_MAXIMO
+
+
+def _armar_prompt(nivel, n_graficos, n_imagenes_ia, n_imagenes_pdf=0, n_candidatas=0, texto=None, portada=False,
+                  temas_max=TEMAS_MAXIMO):
     regla_graficos = (
         f"{n_graficos} gráficos, cada uno con un grupo distinto de números reales del documento "
         "(por ejemplo: cifras que cambian a lo largo de los años, porcentajes o puntajes de "
@@ -163,7 +183,7 @@ def _armar_prompt(nivel, n_graficos, n_imagenes_ia, n_imagenes_pdf=0, n_candidat
     return PROMPT.format(
         origen="adjunto" if texto is None else "de abajo",
         como_leer=COMO_LEER_PDF if texto is None else COMO_LEER_TEXTO,
-        nivel=NIVELES[nivel][1], temas_min=TEMAS_MINIMO, temas_max=TEMAS_MAXIMO, n_puntos=PUNTOS_CLAVE, n_ramas=RAMAS_MAPA,
+        nivel=NIVELES[nivel][1], temas_min=TEMAS_MINIMO, temas_max=temas_max, n_puntos=PUNTOS_CLAVE, n_ramas=RAMAS_MAPA,
         n_conceptos=CONCEPTOS, n_preguntas=PREGUNTAS, regla_graficos=regla_graficos,
         regla_imagenes=regla_imagenes, regla_imagenes_pdf=regla_imagenes_pdf, regla_portada=regla_portada,
         documento="" if texto is None else "\nDOCUMENTO:\n" + texto[:400000] + "\n")
@@ -209,12 +229,18 @@ def _borrar_subido(nombre):
         pass
 
 
-def _pedir(partes):
+# Resolución alta: Gemini mira cada página del PDF con el doble de detalle (lee mejor escaneos,
+# letra chica y números de gráficos). Gasta el doble de tokens, así que en PDF muy largos se usa
+# la normal para no pasar el límite gratis.
+PAGINAS_MAXIMAS_RESOLUCION_ALTA = 80
+
+
+def _pedir(partes, alta=False):
     """Manda el pedido (reintenta si Gemini está saturado). Devuelve la respuesta HTTP."""
-    cuerpo = {
-        "contents": [{"parts": partes}],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.4},
-    }
+    configuracion = {"responseMimeType": "application/json", "temperature": 0.4}
+    if alta:
+        configuracion["mediaResolution"] = "MEDIA_RESOLUTION_HIGH"
+    cuerpo = {"contents": [{"parts": partes}], "generationConfig": configuracion}
     for intento in range(3):
         try:
             r = requests.post(URL, json=cuerpo, timeout=300, headers=_cabeceras())
@@ -267,11 +293,13 @@ def _leer_json(texto):
         return json.loads(texto[inicio:fin + 1])
 
 
-def _pedir_resumen(partes):
+def _pedir_resumen(partes, alta=False):
     """Pide y lee la respuesta; si llega rota (pasa de vez en cuando con el modelo gratis), la pide
     una vez más antes de avisar del error."""
     for intento in range(2):
-        r = _pedir(partes)
+        r = _pedir(partes, alta)
+        if alta and r.status_code in (400, 429) and "API key" not in _mensaje_de(r):
+            r = _pedir(partes)   # si la resolución alta no se puede (límite o tamaño), con la normal
         if r.status_code == 400 and "API key" not in _mensaje_de(r):
             return r, None   # Gemini no pudo abrir el PDF: lo resuelve quien llama
         try:
@@ -291,21 +319,33 @@ def _partes_de_imagenes(miniaturas):
     return partes
 
 
-def _revisar(documento_partes, datos, nivel, texto=None):
+def _revisar(documento_partes, datos, nivel, texto=None, titulos=(), temas_max=TEMAS_MAXIMO, alta=False):
     """Segundo repaso del resumen contra el documento. Si algo sale mal, se queda el resumen original."""
     resumen = {k: datos.get(k) for k in ("resumen_general", "puntos_clave", "temas")}
+    lista_titulos = ("\nEstos son los títulos y subtítulos del documento (sacados de su letra más grande): "
+                     + "; ".join(titulos) + ". Cada uno tiene que tener su entrada en \"comprobacion\" "
+                     "y quedar nombrado en algún tema.") if titulos else ""
     prompt = PROMPT_REVISION.format(
-        origen="adjunto" if texto is None else "de abajo", nivel=NIVELES[nivel][1],
-        resumen=json.dumps(resumen, ensure_ascii=False), temas_max=TEMAS_MAXIMO, n_puntos=PUNTOS_CLAVE,
+        origen="adjunto" if texto is None else "de abajo", nivel=NIVELES[nivel][1], lista_titulos=lista_titulos,
+        resumen=json.dumps(resumen, ensure_ascii=False), temas_max=temas_max, n_puntos=PUNTOS_CLAVE,
         documento="" if texto is None else "\nDOCUMENTO:\n" + texto[:400000] + "\n")
     try:
-        _, revision = _pedir_resumen([*documento_partes, {"text": prompt}])
+        _, revision = _pedir_resumen([*documento_partes, {"text": prompt}], alta=alta)
     except ErrorGemini:
         return datos
     if revision is None:
         return datos
-    datos = _aplicar_revision(datos, revision)
-    return _completar(datos, nivel, revision.get("comprobacion"))
+    datos = _aplicar_revision(datos, revision, temas_max)
+    comprobacion = [e for e in (revision.get("comprobacion") or []) if isinstance(e, dict)]
+    # Los títulos sacados del PDF también se comprueban, aunque Gemini no los haya anotado.
+    anotadas = {_normalizar(e.get("seccion", "")) for e in comprobacion}
+    comprobacion += [{"seccion": t, "datos": [], "titulo": True} for t in titulos if _normalizar(t) not in anotadas]
+    for _ in range(4):   # mientras cada vuelta siga agregando lo que falta, hasta cuatro vueltas
+        antes = len(_faltantes(datos, comprobacion))
+        datos = _completar(datos, nivel, comprobacion, temas_max, documento_partes, texto, alta)
+        if not antes or len(_faltantes(datos, comprobacion)) in (0, antes):
+            break
+    return datos
 
 
 def _normalizar(texto):
@@ -327,6 +367,21 @@ def _esta_en(dato, texto_resumen):
     return sum(p in texto_resumen for p in palabras) >= max(1, round(len(palabras) * 0.6))
 
 
+def _titulo_esta(titulo, texto_resumen):
+    """Un título está si aparece tal cual o si están todas sus palabras importantes."""
+    titulo = _normalizar(titulo)
+    if titulo in texto_resumen:
+        return True
+    comunes = {"para", "como", "sobre", "entre", "desde", "hasta", "otros", "otras", "otro", "otra",
+               "serie", "parte", "principal", "principales", "aspectos", "elementos"}
+    palabras = [p for p in re.findall(r"[a-z0-9]{4,}", titulo) if p not in comunes]
+    if len(palabras) >= 2:
+        return all(p in texto_resumen for p in palabras)
+    # Títulos cortos («Otros medios», «One Piece Day»): tienen que estar tal cual o casi.
+    corto = re.sub(r"[^a-z0-9 ]", " ", titulo).split()
+    return bool(corto) and " ".join(corto) in re.sub(r"[^a-z0-9 ]", " ", texto_resumen)
+
+
 def _faltantes(datos, comprobacion):
     """Secciones y datos de la lista de comprobación que no aparecen en el resumen."""
     if not isinstance(comprobacion, list):
@@ -340,36 +395,74 @@ def _faltantes(datos, comprobacion):
         seccion = str(entrada["seccion"]).strip()
         datos_seccion = [str(d) for d in (entrada.get("datos") or []) if str(d).strip()]
         sin_cubrir = [d for d in datos_seccion if not _esta_en(d, texto_resumen)]
-        if sin_cubrir or (not datos_seccion and not _esta_en(seccion, texto_resumen)):
+        falta_seccion = not _titulo_esta(seccion, texto_resumen)
+        if sin_cubrir or falta_seccion:
             faltan.append({"seccion": seccion, "datos": sin_cubrir})
     return faltan
 
 
-def _completar(datos, nivel, comprobacion):
-    """Último pedido, solo si todavía falta algo de la lista de comprobación."""
+def _completar(datos, nivel, comprobacion, temas_max=TEMAS_MAXIMO, documento_partes=(), texto=None, alta=False):
+    """Pedido para agregar lo que todavía falte de la lista de comprobación (con el documento,
+    para poder escribir sobre una sección entera)."""
     faltan = _faltantes(datos, comprobacion)
     if not faltan:
         return datos
     texto_faltantes = "\n".join(f"- {f['seccion']}: {'; '.join(f['datos']) if f['datos'] else '(toda la sección)'}"
                                 for f in faltan)
     prompt = PROMPT_COMPLETAR.format(
-        nivel=NIVELES[nivel][1], temas_max=TEMAS_MAXIMO, faltantes=texto_faltantes,
-        resumen=json.dumps({"temas": datos.get("temas")}, ensure_ascii=False))
+        nivel=NIVELES[nivel][1], temas_max=temas_max, faltantes=texto_faltantes,
+        origen="adjunto" if texto is None else "de abajo",
+        resumen=json.dumps({"temas": [{"numero": i, **t} for i, t in enumerate(datos.get("temas") or [], 1)]},
+                           ensure_ascii=False),
+        documento="" if texto is None else "\nDOCUMENTO:\n" + texto[:400000] + "\n")
     try:
-        _, completado = _pedir_resumen([{"text": prompt}])
+        _, completado = _pedir_resumen([*documento_partes, {"text": prompt}], alta=alta)
     except ErrorGemini:
         return datos
     if completado is None:
         return datos
-    return _aplicar_revision(datos, completado)
+    return _agregar(datos, completado.get("agregados"), temas_max)
 
 
-def _aplicar_revision(datos, revision):
+def _ya_dice(temas, texto):
+    """Si el resumen ya contiene casi todo lo de 'texto' (para no pegar dos veces lo mismo)."""
+    resumen = _normalizar(" ".join(str(t.get("texto", "")) for t in temas))
+    palabras = set(re.findall(r"[a-z0-9]{5,}", _normalizar(texto)))
+    return bool(palabras) and sum(p in resumen for p in palabras) / len(palabras) >= 0.75
+
+
+def _agregar(datos, agregados, temas_max=TEMAS_MAXIMO):
+    """Pega cada texto nuevo al final del tema que corresponde (o en un tema nuevo si hay lugar).
+    Nunca reescribe ni borra lo que ya estaba."""
+    temas = [t for t in (datos.get("temas") or []) if isinstance(t, dict)]
+    if not isinstance(agregados, list) or not temas:
+        return datos
+    for agregado in agregados:
+        if not isinstance(agregado, dict) or not str(agregado.get("texto", "")).strip():
+            continue
+        texto = str(agregado["texto"]).strip()
+        try:
+            numero = int(agregado.get("tema") or 0)
+        except (TypeError, ValueError):
+            numero = 0
+        if _ya_dice(temas, texto):
+            continue
+        if 1 <= numero <= len(temas):
+            temas[numero - 1]["texto"] = str(temas[numero - 1].get("texto", "")).rstrip() + "\n\n" + texto
+        elif len(temas) < temas_max and str(agregado.get("subtitulo", "")).strip():
+            temas.append({"subtitulo": str(agregado["subtitulo"]).strip(), "texto": texto})
+        else:
+            temas[-1]["texto"] = str(temas[-1].get("texto", "")).rstrip() + "\n\n" + texto
+    datos["temas"] = temas
+    return datos
+
+
+def _aplicar_revision(datos, revision, temas_max=TEMAS_MAXIMO):
     """Toma los temas, puntos clave y resumen corregidos, y mueve los gráficos e imágenes al número
     de tema que les toca ahora. No acepta una revisión que pierda temas."""
     originales = [t for t in (datos.get("temas") or []) if isinstance(t, dict)]
     temas = [t for t in (revision.get("temas") or [])
-             if isinstance(t, dict) and str(t.get("subtitulo", "")).strip() and str(t.get("texto", "")).strip()][:TEMAS_MAXIMO]
+             if isinstance(t, dict) and str(t.get("subtitulo", "")).strip() and str(t.get("texto", "")).strip()][:temas_max]
     if len(temas) < len(originales):
         return datos
     mapa = {}
@@ -399,13 +492,17 @@ def _aplicar_revision(datos, revision):
     return datos
 
 
-def resumir(pdf, texto, nivel, n_graficos=0, n_imagenes_ia=0, miniaturas=(), n_imagenes_pdf=0, portada=False):
+def resumir(pdf, texto, nivel, n_graficos=0, n_imagenes_ia=0, miniaturas=(), n_imagenes_pdf=0, portada=False,
+            titulos=(), paginas=0):
     """Resume el PDF completo (bytes). 'texto' es el texto que se le pudo sacar, para usar si
     Gemini no puede abrir el PDF. 'miniaturas': imágenes del PDF entre las que Gemini elige
     hasta 'n_imagenes_pdf' (vuelven en "imagenes_pdf") y, si 'portada', la foto de la portada
     (vuelve en "imagen_portada"). Devuelve (resumen, si leyó el PDF entero)."""
     miniaturas = list(miniaturas) if (n_imagenes_pdf or portada) else []
     imagenes = _partes_de_imagenes(miniaturas)
+    temas_max = temas_maximo_para(paginas)
+    titulos = list(titulos)
+    alta = 0 < paginas <= PAGINAS_MAXIMAS_RESOLUCION_ALTA
     subido = None
     try:
         if len(pdf) <= MAXIMO_EN_PEDIDO:
@@ -415,10 +512,11 @@ def resumir(pdf, texto, nivel, n_graficos=0, n_imagenes_ia=0, miniaturas=(), n_i
             documento = {"file_data": {"mime_type": "application/pdf", "file_uri": uri}}
         _, datos = _pedir_resumen([documento, *imagenes,
                                    {"text": _armar_prompt(nivel, n_graficos, n_imagenes_ia, n_imagenes_pdf,
-                                                          len(miniaturas), portada=portada)}])
+                                                          len(miniaturas), portada=portada, temas_max=temas_max)}],
+                                  alta=alta)
         # Sin datos = 400 sin problema de clave: Gemini no pudo abrir este PDF (demasiadas páginas, formato raro).
         if datos is not None:
-            return _revisar([documento], datos, nivel), True
+            return _revisar([documento], datos, nivel, titulos=titulos, temas_max=temas_max, alta=alta), True
     finally:
         if subido:
             _borrar_subido(subido)
@@ -426,7 +524,8 @@ def resumir(pdf, texto, nivel, n_graficos=0, n_imagenes_ia=0, miniaturas=(), n_i
     if len(texto) < 100:
         raise ErrorGemini("Gemini no pudo leer este PDF. Prueba guardarlo de nuevo como PDF o dividirlo en partes.")
     r, datos = _pedir_resumen([*imagenes, {"text": _armar_prompt(nivel, n_graficos, n_imagenes_ia, n_imagenes_pdf,
-                                                                   len(miniaturas), texto=texto, portada=portada)}])
+                                                                   len(miniaturas), texto=texto, portada=portada,
+                                                                   temas_max=temas_max)}])
     if datos is None:
         raise ErrorGemini("Gemini no pudo leer este PDF. Prueba guardarlo de nuevo como PDF o dividirlo en partes.")
-    return _revisar([], datos, nivel, texto=texto), False
+    return _revisar([], datos, nivel, texto=texto, titulos=titulos, temas_max=temas_max), False
