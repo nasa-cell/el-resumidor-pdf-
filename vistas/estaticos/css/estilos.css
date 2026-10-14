@@ -122,6 +122,30 @@ h1 {
 .cta-ir:active { transform: translateY(4px); box-shadow: 0 0 0 0 var(--violeta-oscuro); }
 .cta-ir:focus-visible { outline: 3px solid var(--violeta-oscuro); outline-offset: 3px; }
 
+/* botón «Video» junto al principal, y la ventana que muestra la guía en grande */
+.boton-video {
+  display: inline-flex; align-items: center; gap: 9px; margin-left: 12px; padding: 13px 24px;
+  background: var(--papel); color: var(--tinta); text-decoration: none; font-weight: 700; font-size: 1rem;
+  border: 2px solid var(--tinta); border-radius: 999px; box-shadow: 0 4px 0 0 var(--tinta);
+  vertical-align: top; transition: transform .12s, box-shadow .12s;
+}
+.boton-video svg { width: 22px; height: 22px; color: var(--violeta); }
+.boton-video:active { transform: translateY(4px); box-shadow: 0 0 0 0 var(--tinta); }
+.boton-video:focus-visible { outline: 3px solid var(--violeta-oscuro); outline-offset: 3px; }
+@media (max-width: 480px) { .boton-video { margin: 14px 0 0; } }
+.video-ventana {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  padding: 20px; background: rgba(23, 21, 31, .82);
+}
+.video-ventana[hidden] { display: none; }
+.video-caja { width: min(1100px, 100%); }
+.video-caja video { display: block; width: 100%; max-height: 82vh; background: #000; border: 3px solid var(--tinta); border-radius: var(--radio); }
+.video-cerrar {
+  display: block; width: auto; margin: 0 0 10px auto; padding: 9px 18px; font-size: .95rem;
+  background: var(--amarillo); color: var(--tinta); box-shadow: none;
+}
+.video-cerrar:hover:not(:disabled) { background: var(--amarillo); }
+
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; padding-top: 44px; text-align: left; }
   .hero-texto { max-width: none; }

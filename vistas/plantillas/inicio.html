@@ -8,6 +8,9 @@
     <h1 class="aparece" style="--r:1"><span class="resaltado">Convierte un PDF largo en lo que de verdad necesitas estudiar</span></h1>
     <p class="intro aparece" style="--r:2">Sube el documento y en un par de minutos recibes otro PDF con portada, las ideas principales, un mapa conceptual, imágenes, gráficos, palabras clave y preguntas para practicar.</p>
     <a class="cta-ir magnetico aparece" href="{{ url_for('resumen.crear_pagina') }}" style="--r:3">Crear mi resumen<span aria-hidden="true"> →</span></a>
+    <a class="boton-video aparece" href="{{ url_for('static', filename='video/resumidor-guia.mp4') }}" id="abrir-video" style="--r:3">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7"/><path d="M10 8.5v7l6-3.5-6-3.5Z" fill="currentColor"/></svg>Video
+    </a>
   </div>
 
   <div class="mascotas aparece" style="--r:2" aria-hidden="true">
@@ -141,4 +144,17 @@
   </ul>
 </section>
 
+<div class="video-ventana" id="video-ventana" hidden>
+  <div class="video-caja">
+    <button type="button" class="video-cerrar" id="video-cerrar">✕ Cerrar</button>
+    <video id="video-guia" controls preload="none" playsinline
+           poster="{{ url_for('static', filename='video/portada.jpg') }}"
+           src="{{ url_for('static', filename='video/resumidor-guia.mp4') }}"></video>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block script %}
+<script src="{{ url_for('static', filename='js/video_guia.js') }}"></script>
 {% endblock %}
